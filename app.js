@@ -185,10 +185,10 @@ function beginRecording() {
   const onEnd = (reason) => {
     // Chrome/Edge auto-stop recognition after ~60s of continuous speech or a
     // long silence — silently restart while the speak timer is still running
-    // so a long turn isn't cut off mid-answer.
+    // so a long turn isn't cut off mid-answer. If the restart itself fails,
+    // end the question instead of running a dead timer.
     if (reason === "ended" && session.speakTimer && !session.manualStop) {
-      startRecognition(onUpdate, onEnd, /* keepTranscript */ true);
-      return;
+      if (startRecognition(onUpdate, onEnd, /* keepTranscript */ true)) return;
     }
     finishRecording(reason);
   };
@@ -396,8 +396,13 @@ function renderReport() {
       "No scorable answers this session. Speak (or type) at least a few sentences per question so we can grade you.";
     $("#criteria").innerHTML = "";
     $("#stats").innerHTML = "";
+    $("#btn-ai-feedback").classList.add("hidden");
+    $("#ai-feedback").classList.add("hidden");
     return;
   }
+  $("#btn-ai-feedback").classList.remove("hidden");
+  $("#ai-feedback").classList.add("hidden");
+  $("#ai-feedback").innerHTML = "";
 
   const all = scored.map((a) => a.transcript).join(" ");
   const totalTarget = scored.reduce((s, a) => s + a.targetSeconds, 0);
@@ -433,6 +438,66 @@ function renderReport() {
   ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
 }
 
+/* ---------- production AI feedback (Cloudflare Worker) ----------
+   POSTs the session transcript to /api/feedback (worker.js → Gemini/Groq free
+   tier, 3 gradings/day/visitor). Until the worker is deployed the button shows
+   an honest "not live yet" note — it never fakes a score. */
+async function getAIFeedback() {
+  const box = $("#ai-feedback");
+  const btn = $("#btn-ai-feedback");
+  box.classList.remove("hidden");
+  box.innerHTML = '<p class="muted">Grading with AI — this takes a few seconds…</p>';
+  btn.disabled = true;
+  try {
+    const scored = session.answers.filter((a) => a.scored);
+    const transcript = scored
+      .map((a) => `Q: ${a.prompt}\nA: ${a.transcript}`)
+      .join("\n\n")
+      .slice(0, 6000);
+    const r = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transcript,
+        part: scored[0] ? scored[0].part : 1,
+        secondsSpoken: scored.reduce((s, a) => s + a.secondsSpoken, 0),
+      }),
+    });
+    let data = {};
+    try { data = await r.json(); } catch { /* non-JSON error page */ }
+    if (!r.ok || !data.scores) throw new Error((data && data.error) || "grading unavailable");
+    renderAIFeedback(box, data.scores, data.meta);
+  } catch (e) {
+    box.innerHTML =
+      '<div class="demo-note"><strong>AI grading isn’t live yet.</strong> ' +
+      "The demo scores above are yours to work with — full AI grading " +
+      "(including pronunciation from your audio) launches with the hosted version.</div>";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderAIFeedback(box, scores, meta) {
+  const names = { fluency: "Fluency & Coherence", lexical: "Lexical Resource", grammar: "Grammatical Range & Accuracy" };
+  const rows = ["fluency", "lexical", "grammar"].map((k) =>
+    `<div class="criterion"><div class="chead"><h4>${names[k]} <span class="muted">· AI</span></h4>` +
+    `<span class="score">${Number(scores[k]).toFixed(1)}</span></div>` +
+    `<p>${escapeHtml((scores.tips && scores.tips[k]) || "")}</p></div>`
+  ).join("");
+  box.innerHTML =
+    `<div class="card" style="margin:0"><h3 style="margin-top:0">🤖 AI examiner feedback` +
+    (meta && meta.provider ? ` <span class="muted" style="font-weight:400">· via ${escapeHtml(meta.provider)}</span>` : "") +
+    `</h3>${rows}` +
+    (scores.strength ? `<p><strong>Strength:</strong> ${escapeHtml(scores.strength)}</p>` : "") +
+    (scores.fix ? `<p><strong>One fix to focus on:</strong> ${escapeHtml(scores.fix)}</p>` : "") +
+    `</div>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 /* ---------- wiring ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   $("#year").textContent = new Date().getFullYear();
@@ -452,6 +517,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#btn-quit").addEventListener("click", quitPractice);
   $("#btn-again").addEventListener("click", () => startMode(session.mode));
   $("#btn-home2").addEventListener("click", () => show("view-home"));
+  $("#btn-ai-feedback").addEventListener("click", getAIFeedback);
 
   show("view-home");
 });
