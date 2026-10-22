@@ -1,4 +1,4 @@
-# SpeakBand — build notes (prototype v1.1, 2026-10-22)
+# SpeakBand — build notes (prototype v1.2, 2026-10-22)
 
 Working name; branding not final.
 
@@ -9,7 +9,8 @@ Working name; branding not final.
 - `styles.css` — shared mobile-first styles.
 - `questions.js` — question banks: 10× Part-1 topics (4 Qs each), 12× Part-2 cue cards, 6× Part-3 sets.
 - `app.js` — flow logic, Web Speech API recording (en-GB), timestamp-based timers,
-  Chrome auto-restart for long turns, DEMO heuristic band scorer (unscored answers excluded).
+  Chrome auto-restart for long turns, DEMO heuristic band scorer (unscored answers excluded),
+  "Get AI band feedback" button → POST /api/feedback (honest "not live yet" until deployed).
 - `worker.js` — Cloudflare Worker: POST /api/feedback (Gemini→Groq fallback chain,
   3 free gradings/day/IP via KV, CORS + input sanitizing + score validation),
   POST /api/waitlist (per-IP rate limit). Needs GEMINI_API_KEY + GROQ_API_KEY env
@@ -36,12 +37,25 @@ Working name; branding not final.
   recognizer auto-restart, privacy copy corrected (Web Speech API streams to the
   browser maker's servers in Chrome/Edge), iOS input zoom fix, button markup
   validity, footer contrast, dead code removed.
-- `node --check` clean on all JS after fixes.
+- "Get AI band feedback" button added to the report view: POSTs the session to
+  /api/feedback, renders AI bands/tips/strength/fix; shows an honest "not live
+  yet" note until the worker is deployed (never fakes a score).
+- `node --check` clean on all JS after fixes; HTML tag-balance valid on both pages.
+- Visual QA in a real browser still TODO: live-browser task couldn't reach the
+  VM's localhost (separate environment), and this VM has no browser binaries —
+  static verification only. Deploy first, then QA on the live URL.
+- Cloudflare: dash.cloudflare.com shows the login page in the browser profile —
+  NO active session. Deployment needs the account owner to log in (one tiny
+  action) or run the Path A commands; worker secrets can only be entered by the
+  key owner. Full runbook: hidden_files/DEPLOY.md.
+- Pushed to Ayaz232005/speakband: commits b22d13a (v1.1 fixes) + c36300e (v1.2 AI
+  button), verified with live reads.
 
 ## Next steps
-1. Deploy static files to Cloudflare Pages + worker (needs Cloudflare login —
-   the account exists; `wrangler login` / dashboard session is the one tiny step).
-2. `wrangler kv namespace create KV` → fill id in wrangler.toml → `wrangler secret put`
-   GEMINI_API_KEY + GROQ_API_KEY (keys stored in Secure Vault; values entered by owner).
-3. Visual QA in a real browser (mic flow, timers, report rendering).
-4. Supabase auth + progress tracking (later, when retention matters).
+1. **Deploy** (blocked on one tiny owner action — see hidden_files/DEPLOY.md):
+   Cloudflare login → `wrangler kv namespace create KV` → fill id in wrangler.toml →
+   `wrangler secret put` GEMINI_API_KEY + GROQ_API_KEY (key owner pastes values) →
+   `wrangler deploy` + `wrangler pages deploy`. Interim alternative: GitHub Pages
+   (repo Settings → Pages → main branch, one click) for the static site now.
+2. Visual QA on the live URL (mic flow, timers, report rendering, AI feedback button).
+3. Supabase auth + progress tracking (later, when retention matters).
