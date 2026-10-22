@@ -15,8 +15,9 @@
  */
 
 const FREE_GRADED_PER_DAY = 3;
-const GEMINI_MODEL = "gemini-3.5-flash-lite"; // 500 RPD free (Oct 2026); re-check
-const GROQ_MODEL = "openai/gpt-oss-120b";     // 1,000 RPD free (Oct 2026); re-check
+const WAITLIST_PER_IP_PER_DAY = 20;
+const GEMINI_MODEL = "gemini-3.5-flash-lite"; // verified live 2026-10-22 via models list
+const GROQ_MODEL = "openai/gpt-oss-120b";     // verified live 2026-10-22 via models list
 
 const SYSTEM_PROMPT = `You are an IELTS speaking examiner. Score the transcript 0-9 in 0.5 steps on:
 Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy.
@@ -29,6 +30,13 @@ a hesitant, filler-heavy answer scores below 6.`;
 
 export default {
   async fetch(request, env) {
+    // CORS preflight: the frontend may be served from Pages on another origin.
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
+    if (!env.KV) {
+      return json({ error: "Server storage not configured. Please try again later." }, 500);
+    }
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/api/feedback") {
       return handleFeedback(request, env);
@@ -39,6 +47,15 @@ export default {
     return json({ error: "not found" }, 404);
   },
 };
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+  };
+}
 
 async function handleFeedback(request, env) {
   let body;
@@ -57,12 +74,15 @@ async function handleFeedback(request, env) {
     return json({ error: "Daily free AI-grading limit reached (3/day). Try again tomorrow." }, 429);
   }
 
-  const userMsg = `Part ${body.part || "?"} of IELTS speaking. Spoke ~${body.secondsSpoken || "?"}s.\n\nTranscript:\n${transcript}`;
+  // Sanitize prompt inputs: part is whitelisted, secondsSpoken is numeric.
+  const part = ["1", "2", "3"].includes(String(body.part)) ? body.part : "?";
+  const secs = Math.max(0, Math.min(900, parseInt(body.secondsSpoken, 10) || 0)) || "?";
+  const userMsg = `Part ${part} of IELTS speaking. Spoke ~${secs}s.\n\nTranscript:\n${transcript}`;
 
   let result = await gradeWithGemini(env, userMsg);
   if (!result.ok) result = await gradeWithGroq(env, userMsg);
   if (!result.ok) {
-    return json({ error: "Grading is busy right now. Your practice was saved — try again in a minute." }, 503);
+    return json({ error: "Grading is busy right now. Please try again in a minute." }, 503);
   }
 
   await env.KV.put(key, String(used + 1), { expirationTtl: 86400 });
@@ -87,7 +107,9 @@ async function gradeWithGemini(env, userMsg) {
     if (!r.ok) return { ok: false, status: r.status };
     const data = await r.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return { ok: true, provider: "gemini", scores: JSON.parse(text) };
+    const scores = safeParseScores(text);
+    if (!scores) return { ok: false };
+    return { ok: true, provider: "gemini", scores };
   } catch { return { ok: false }; }
 }
 
@@ -114,8 +136,22 @@ async function gradeWithGroq(env, userMsg) {
     if (!r.ok) return { ok: false, status: r.status };
     const data = await r.json();
     const text = data.choices?.[0]?.message?.content || "";
-    return { ok: true, provider: "groq", scores: JSON.parse(text) };
+    const scores = safeParseScores(text);
+    if (!scores) return { ok: false };
+    return { ok: true, provider: "groq", scores };
   } catch { return { ok: false }; }
+}
+
+/* Parse the model reply and validate the scoring contract: three numeric
+   bands in 0–9. Anything else is treated as a grading failure (→ fallback). */
+function safeParseScores(text) {
+  let s;
+  try { s = JSON.parse(text); } catch { return null; }
+  if (!s || typeof s !== "object") return null;
+  for (const k of ["fluency", "lexical", "grammar"]) {
+    if (typeof s[k] !== "number" || !(s[k] >= 0 && s[k] <= 9)) return null;
+  }
+  return s;
 }
 
 async function handleWaitlist(request, env) {
@@ -126,8 +162,17 @@ async function handleWaitlist(request, env) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ error: "Please enter a valid email." }, 422);
   }
+  // Modest per-IP rate limit: KV writes are free-tier-capped, don't let one
+  // client spam keys.
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const rlKey = `waitlist-quota:${ip}:${dayStamp()}`;
+  const used = parseInt((await env.KV.get(rlKey)) || "0", 10);
+  if (used >= WAITLIST_PER_IP_PER_DAY) {
+    return json({ error: "Too many signups from this address today. Try again tomorrow." }, 429);
+  }
   // KV first (free); swap to Resend/Loops welcome email when configured.
   await env.KV.put(`waitlist:${email}`, new Date().toISOString());
+  await env.KV.put(rlKey, String(used + 1), { expirationTtl: 86400 });
   return json({ ok: true });
 }
 
@@ -138,6 +183,6 @@ function dayStamp() {
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...corsHeaders() },
   });
 }

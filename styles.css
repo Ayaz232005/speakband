@@ -96,8 +96,8 @@ body {
   font: inherit; color: inherit;
 }
 .mode:hover { border-color: var(--brand); }
-.mode h3 { margin: 0 0 4px; font-size: 1.05rem; }
-.mode p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.mode .mtitle { display: block; margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; }
+.mode .mdesc { display: block; margin: 0; color: var(--muted); font-size: 0.9rem; }
 .mode .time { font-size: 0.78rem; color: var(--brand); font-weight: 700; }
 
 .qcard .qlabel {
@@ -125,7 +125,7 @@ body {
   background: #f2f5fb; border: 1px dashed var(--line); border-radius: 10px;
   padding: 14px; min-height: 90px; font-size: 0.96rem; white-space: pre-wrap;
 }
-.transcript .placeholder { color: #9aa3bb; }
+.transcript .placeholder { color: #6b7590; }
 
 .band-hero { text-align: center; padding: 8px 0 2px; }
 .band-big { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
@@ -153,7 +153,7 @@ body {
 .center { text-align: center; }
 .mt { margin-top: 18px; }
 
-footer { text-align: center; color: #9aa3bb; font-size: 0.8rem; padding: 30px 0 10px; }
+footer { text-align: center; color: #6b7590; font-size: 0.8rem; padding: 30px 0 10px; }
 
 @media (prefers-reduced-motion: reduce) {
   .rec-dot { animation: none; }

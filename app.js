@@ -1,8 +1,10 @@
 /* SpeakBand prototype — client-side speaking practice.
-   STT: browser Web Speech API (free, on-device where supported, no server quota).
+   STT: browser Web Speech API (free; transcription runs through the browser's
+   built-in speech service — in Chrome/Edge that means the browser maker's
+   servers, not on-device).
    Feedback: DEMO heuristic engine. Production will call /api/feedback
    (Cloudflare Worker → Gemini Flash-Lite / Groq free tier with per-user caps).
-   Nothing leaves the browser in this prototype. */
+   Transcripts stay on-device in this prototype; nothing is uploaded. */
 "use strict";
 
 /* ---------- helpers ---------- */
@@ -29,15 +31,17 @@ let interimTranscript = "";
 
 function srSupported() { return !!SR; }
 
-function startRecognition(onUpdate, onEnd) {
+function startRecognition(onUpdate, onEnd, keepTranscript) {
   if (!srSupported()) return false;
   recognizer = new SR();
   recognizer.lang = "en-GB";            // IELTS examiners commonly use British English
   recognizer.interimResults = true;
   recognizer.continuous = true;
   recognizer.maxAlternatives = 1;
-  finalTranscript = "";
-  interimTranscript = "";
+  if (!keepTranscript) {
+    finalTranscript = "";
+    interimTranscript = "";
+  }
 
   recognizer.onresult = (e) => {
     interimTranscript = "";
@@ -148,12 +152,13 @@ function renderQuestion() {
     : "Target speaking time";
 
   if (item.prep) {
-    // Part 2: prep countdown, then auto-enable speaking
+    // Part 2: prep countdown, then auto-enable speaking.
+    // Timestamp-based so background-tab throttling can't skew the timer.
     $("#btn-start-rec").disabled = true;
-    let left = item.prep;
+    const prepEndAt = Date.now() + item.prep * 1000;
     session.prepTimer = setInterval(() => {
-      left -= 1;
-      $("#timer").textContent = fmtTime(Math.max(left, 0));
+      const left = Math.max(0, Math.round((prepEndAt - Date.now()) / 1000));
+      $("#timer").textContent = fmtTime(left);
       if (left <= 0) {
         clearInterval(session.prepTimer);
         session.prepTimer = null;
@@ -161,7 +166,7 @@ function renderQuestion() {
         $("#timer").textContent = fmtTime(item.seconds);
         $("#btn-start-rec").disabled = false;
       }
-    }, 1000);
+    }, 500);
   }
 }
 
@@ -169,10 +174,22 @@ function beginRecording() {
   const item = session.queue[session.idx];
   const box = $("#transcript");
 
+  // Reset per-question recording state FIRST (also covers the typed-fallback path below).
+  session.speakElapsed = 0;
+  session.finishing = false;
+  session.manualStop = false;
+
   const onUpdate = (text) => {
     box.textContent = text.trim() || "";
   };
   const onEnd = (reason) => {
+    // Chrome/Edge auto-stop recognition after ~60s of continuous speech or a
+    // long silence — silently restart while the speak timer is still running
+    // so a long turn isn't cut off mid-answer.
+    if (reason === "ended" && session.speakTimer && !session.manualStop) {
+      startRecognition(onUpdate, onEnd, /* keepTranscript */ true);
+      return;
+    }
     finishRecording(reason);
   };
 
@@ -191,17 +208,20 @@ function beginRecording() {
   $("#btn-stop-rec").classList.remove("hidden");
   $("#rec-state").innerHTML = '<span class="rec-dot"></span><span class="muted">Recording… speak naturally</span>';
 
-  session.speakElapsed = 0;
-  let left = item.seconds;
+  // Timestamp-based countdown: immune to background-tab timer throttling.
+  const speakEndAt = Date.now() + item.seconds * 1000;
   session.speakTimer = setInterval(() => {
-    session.speakElapsed += 1;
-    left -= 1;
-    $("#timer").textContent = fmtTime(Math.max(left, 0));
+    const left = Math.max(0, Math.round((speakEndAt - Date.now()) / 1000));
+    session.speakElapsed = item.seconds - left;
+    $("#timer").textContent = fmtTime(left);
     if (left <= 0) finishRecording("time-up");
-  }, 1000);
+  }, 500);
 }
 
 function finishRecording(reason) {
+  if (session.finishing) return; // recognizer.onend re-fires after stop() — ignore the echo
+  session.finishing = true;
+  session.manualStop = true;     // block Chrome auto-restart from here on
   if (session.speakTimer) { clearInterval(session.speakTimer); session.speakTimer = null; }
   stopRecognition();
   $("#btn-stop-rec").classList.add("hidden");
@@ -214,17 +234,26 @@ function finishRecording(reason) {
 }
 
 function nextQuestion() {
-  // Save current answer
+  // Save current answer. Very short/empty answers are recorded but NOT scored —
+  // a band score for silence would be meaningless.
   const item = session.queue[session.idx];
   let text = finalTranscript.trim();
   const typed = $("#fallback-text").value.trim();
   if (typed) text = typed;
+  const words = text.split(/\s+/).filter(Boolean).length;
+
+  // Typed answers never touch the mic timer: estimate speaking time from word
+  // count at ~150 wpm so they're not systematically under-scored.
+  let secondsSpoken = session.speakElapsed;
+  if (typed) secondsSpoken = Math.min(Math.round(words / 2.5), item.seconds);
+
   session.answers.push({
     part: item.part,
     prompt: item.prompt,
     transcript: text,
-    secondsSpoken: session.speakElapsed,
+    secondsSpoken,
     targetSeconds: item.seconds,
+    scored: words >= 10,
   });
 
   session.idx += 1;
@@ -244,13 +273,14 @@ function clearTimers() {
 }
 
 function quitPractice() {
-  clearTimers();
-  if (session.answers.length > 0 && confirm("Quit this practice? Your recorded answers will be discarded.")) {
+  // Confirm BEFORE killing timers: cancelling the dialog must leave the
+  // practice session (and its timers) untouched, never stranded.
+  if (session.answers.length > 0) {
+    if (!confirm("Quit this practice? Your recorded answers will be discarded.")) return;
     session.answers = [];
-    show("view-home");
-  } else if (session.answers.length === 0) {
-    show("view-home");
   }
+  clearTimers();
+  show("view-home");
 }
 
 /* ---------- DEMO feedback engine ----------
@@ -338,9 +368,40 @@ function criterionName(k) {
 }
 
 function renderReport() {
-  const all = session.answers.map((a) => a.transcript).join(" ");
-  const totalTarget = session.answers.reduce((s, a) => s + a.targetSeconds, 0);
-  const totalSpoken = session.answers.reduce((s, a) => s + a.secondsSpoken, 0);
+  // Only scorable answers feed the band computation — unscored ones are still
+  // listed below, marked as not scored.
+  const scored = session.answers.filter((a) => a.scored);
+
+  const list = $("#answer-list");
+  list.innerHTML = "";
+  session.answers.forEach((ans, i) => {
+    const d = document.createElement("details");
+    d.className = "card";
+    const s = document.createElement("summary");
+    s.style.cursor = "pointer";
+    s.style.fontWeight = "700";
+    s.textContent = `Answer ${i + 1} — ${ans.prompt.slice(0, 60)}${ans.prompt.length > 60 ? "…" : ""}` +
+      (ans.scored ? "" : " · not scored (too short)");
+    const p = document.createElement("p");
+    p.className = "muted";
+    p.textContent = ans.transcript || "(no speech captured)";
+    d.appendChild(s);
+    d.appendChild(p);
+    list.appendChild(d);
+  });
+
+  if (!scored.length) {
+    $("#band-overall").innerHTML = "— <small>/ 9</small>";
+    $("#band-sub").textContent =
+      "No scorable answers this session. Speak (or type) at least a few sentences per question so we can grade you.";
+    $("#criteria").innerHTML = "";
+    $("#stats").innerHTML = "";
+    return;
+  }
+
+  const all = scored.map((a) => a.transcript).join(" ");
+  const totalTarget = scored.reduce((s, a) => s + a.targetSeconds, 0);
+  const totalSpoken = scored.reduce((s, a) => s + a.secondsSpoken, 0);
   const coverage = totalTarget ? Math.min(totalSpoken / totalTarget, 1) : 0;
 
   const a = analyze(all);
@@ -370,23 +431,6 @@ function renderReport() {
     [Math.round(a.uniqueRatio * 100) + "%", "vocabulary variety"],
     [session.answers.length + " answers", "recorded"],
   ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
-
-  const list = $("#answer-list");
-  list.innerHTML = "";
-  session.answers.forEach((ans, i) => {
-    const d = document.createElement("details");
-    d.className = "card";
-    const s = document.createElement("summary");
-    s.style.cursor = "pointer";
-    s.style.fontWeight = "700";
-    s.textContent = `Answer ${i + 1} — ${ans.prompt.slice(0, 60)}${ans.prompt.length > 60 ? "…" : ""}`;
-    const p = document.createElement("p");
-    p.className = "muted";
-    p.textContent = ans.transcript || "(no speech captured)";
-    d.appendChild(s);
-    d.appendChild(p);
-    list.appendChild(d);
-  });
 }
 
 /* ---------- wiring ---------- */

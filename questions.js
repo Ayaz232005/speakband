@@ -134,11 +134,3 @@ const PART3_SETS = [
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
-
-/* Build a full mock: 1 Part-1 topic (4 Qs), 1 Part-2 card, 1 Part-3 set. */
-function buildFullMock() {
-  const p1 = pickRandom(PART1_TOPICS);
-  const p2 = pickRandom(PART2_CARDS);
-  const p3 = pickRandom(PART3_SETS);
-  return { part1: p1, part2: p2, part3: p3 };
-}

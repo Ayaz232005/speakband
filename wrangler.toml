@@ -1,0 +1,23 @@
+# SpeakBand API worker — Cloudflare Workers (free tier: 100k requests/day).
+# Deploy: `npx wrangler deploy` (after `wrangler login` on the account owner's machine).
+# Secrets (set once, never committed):
+#   wrangler secret put GEMINI_API_KEY   # Google AI Studio free key
+#   wrangler secret put GROQ_API_KEY     # GroqCloud free key (fallback scorer)
+
+name = "speakband-api"
+main = "worker.js"
+compatibility_date = "2026-10-22"
+
+# KV namespace for per-IP grading quotas + waitlist emails.
+# Create it once with:  wrangler kv namespace create KV
+# ...then replace the placeholder id below with the id wrangler prints.
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Serve the static site (index.html, landing.html) from Cloudflare Pages and
+# route /api/* to this worker, OR serve everything through the worker with a
+# static-asset binding. Pages + Worker route is the recommended free setup:
+#   1. `npx wrangler pages deploy . --project-name speakband`
+#   2. In the Cloudflare dashboard: Workers Routes → add `speakband.pages.dev/api/*`
+#      → this worker. Then landing.html's fetch('/api/waitlist') is same-origin.
