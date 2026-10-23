@@ -7,8 +7,11 @@ the two values below exist. Nothing charges anyone before then.
 ## What the user does (one time, in the Lemon Squeezy dashboard)
 
 1. **Create a free Lemon Squeezy store** at lemonsqueezy.com — free plan,
-   no card required to start. Lemon Squeezy pays out to Pakistan banks
-   ($50 minimum payout).
+   no card required to start. The store opens in **test mode**; going live
+   needs a **1–2 business day activation review** (KYC/KYB), so do this step
+   early. Lemon Squeezy pays out to Pakistan banks ($50 minimum payout,
+   **twice a month**, ~13-day hold on sales). Note: **Payoneer is NOT a
+   Lemon Squeezy payout method** — use bank transfer or PayPal.
 2. **Create a product**: "SpeakBand Pro", $9/month subscription.
 3. **Copy the checkout URL** — the product's "Buy now" / checkout link
    (looks like `https://speakband.lemonsqueezy.com/checkout/buy/…`).
@@ -30,11 +33,15 @@ the two values below exist. Nothing charges anyone before then.
 3. Redeploy the worker, verify a test webhook returns 200, flip the
    "Coming soon" badge copy to live.
 
-## Pricing (already on the landing page)
+## Pricing and unit math (verified Oct 2026)
 
 - **Free** — $0 forever: unlimited questions, real timings, 3 AI gradings/day.
-- **Pro** — $9/mo: unlimited AI gradings, detailed examiner reports,
-  pronunciation scoring from audio, progress tracking, cancel anytime.
+- **Pro** — $9/mo (or $90/yr): unlimited AI gradings, detailed examiner
+  reports, pronunciation scoring from audio, progress tracking, cancel anytime.
+
+Lemon Squeezy fees: **5% + $0.50 per transaction, plus 1% for non-US-bank
+payouts**. Net per $9/mo subscription: **≈ $8.04**. That means **≈ 125 paying
+subscribers = US$1,000/month** — the December 2027 target.
 
 ## Honesty rules (do not break)
 

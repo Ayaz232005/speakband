@@ -124,6 +124,11 @@ const STATIC_FILES = {
   "/blog/how-speaking-is-scored.html": "/blog/how-speaking-is-scored.html",
   "/blog/practice-alone.html": "/blog/practice-alone.html",
   "/refund.html": "/refund.html",
+  "/pricing.html": "/pricing.html",
+  "/compare.html": "/compare.html",
+  "/cookies.html": "/cookies.html",
+  "/payments.html": "/payments.html",
+  "/sitemap.html": "/sitemap.html",
 };
 const STATIC_TYPES = {
   ".html": "text/html; charset=utf-8",
