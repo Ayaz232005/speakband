@@ -1,52 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SpeakBand — free AI IELTS speaking practice with band-score feedback.">
-  <title>SpeakBand — Free AI IELTS Speaking Practice</title>
+  <meta name="description" content="SpeakBand: free AI IELTS speaking practice with band-score feedback.">
+  <title>SpeakBand: Practice room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="/speakband-avatar.png" type="image/png">
 </head>
 <body>
 <div class="wrap">
 
   <header class="topbar">
-    <div class="logo">Speak<span>Band</span></div>
-    <div class="badge-free">FREE</div>
+    <a class="brand" href="/">
+      <img src="/speakband-avatar.png" alt="SpeakBand logo" width="38" height="38">
+      <span class="wordmark">SpeakBand</span>
+    </a>
+    <span class="badge-free" style="margin-left:auto">Free</span>
   </header>
 
   <!-- ============ HOME ============ -->
   <section id="view-home" class="view">
-    <div class="hero">
-      <h1>Practice IELTS speaking.<br><span class="hl">Get your band score.</span></h1>
-      <p>Answer real IELTS-style questions out loud and get instant band-score feedback — free, no sign-up, right in your browser.</p>
-      <button class="btn" data-start>Start free practice</button>
+    <div class="app-hero">
+      <h1>Get your band score.</h1>
+      <p>Answer real IELTS-style questions out loud and get instant band-score feedback. Free, no sign-up, right in your browser.</p>
+      <button class="btn" data-start>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg>
+        Start free practice</button>
       <div id="mic-warning" class="demo-note hidden" style="text-align:left">
-        Your browser doesn't support live speech recognition — you can still practice by typing your answers.
+        Your browser doesn't support live speech recognition, but you can still practice by typing your answers.
       </div>
     </div>
 
-    <div class="steps">
-      <div class="step">
-        <div class="n">1</div>
-        <h3>Pick a part</h3>
-        <p>Part 1 interview, Part 2 cue card, Part 3 discussion — or a full mock test.</p>
-      </div>
-      <div class="step">
-        <div class="n">2</div>
-        <h3>Speak</h3>
-        <p>Answer out loud with your mic. Timers match the real test format.</p>
-      </div>
-      <div class="step">
-        <div class="n">3</div>
-        <h3>Get your band</h3>
-        <p>Instant 0–9 scores on all four IELTS criteria, plus tips to improve.</p>
-      </div>
-    </div>
-
-    <div class="card">
+    <div class="panel">
       <h3 style="margin-top:0">What you get free</h3>
-      <ul style="margin:0;padding-left:20px;color:var(--muted)">
+      <ul style="margin:0 0 18px;padding-left:20px;color:var(--ink-dim)">
         <li>Unlimited practice questions across all 3 parts</li>
         <li>Real test timings (1-min prep, 2-min long turn)</li>
         <li>Band-score breakdown + personalised tips</li>
@@ -58,28 +49,28 @@
 
   <!-- ============ MODE SELECT ============ -->
   <section id="view-modes" class="view hidden">
-    <h2 style="letter-spacing:-0.02em">Choose your practice</h2>
-    <p class="muted">Timings follow the real IELTS speaking test.</p>
+    <h2 style="font-size:var(--step-head)">Choose your practice</h2>
+    <p class="muted" style="margin:14px 0 22px">Timings follow the real IELTS speaking test.</p>
     <div class="mode-grid">
       <button class="mode" data-mode="part1">
-        <span class="mtitle">Part 1 — Interview</span>
+        <span class="mtitle">Part 1 · Interview</span>
         <span class="mdesc">4 quick questions on familiar topics: home, work, hobbies.</span>
-        <span class="time">≈ 3 minutes</span>
+        <span class="time">&asymp; 3 min</span>
       </button>
       <button class="mode" data-mode="part2">
-        <span class="mtitle">Part 2 — Cue card</span>
+        <span class="mtitle">Part 2 · Cue card</span>
         <span class="mdesc">1 minute to prepare, then speak for up to 2 minutes on a topic.</span>
-        <span class="time">≈ 3 minutes</span>
+        <span class="time">&asymp; 3 min</span>
       </button>
       <button class="mode" data-mode="part3">
-        <span class="mtitle">Part 3 — Discussion</span>
+        <span class="mtitle">Part 3 · Discussion</span>
         <span class="mdesc">4 deeper questions connected to abstract ideas and opinions.</span>
-        <span class="time">≈ 4 minutes</span>
+        <span class="time">&asymp; 4 min</span>
       </button>
       <button class="mode" data-mode="full">
         <span class="mtitle">Full mock test</span>
         <span class="mdesc">All three parts back-to-back, like the real exam.</span>
-        <span class="time">≈ 11–14 minutes</span>
+        <span class="time">&asymp; 11&ndash;14 min</span>
       </button>
     </div>
     <button id="btn-back-home" class="btn btn-ghost btn-block">Back</button>
@@ -87,69 +78,84 @@
 
   <!-- ============ PRACTICE ============ -->
   <section id="view-practice" class="view hidden">
-    <div class="card qcard">
+    <div class="panel">
       <div class="muted" id="q-progress">Question 1 of 1</div>
       <div class="qlabel" id="q-label">Part 1</div>
-      <h2 id="q-prompt">Question</h2>
-      <div id="q-points"></div>
+      <h2 class="qprompt" id="q-prompt">Question</h2>
+      <div id="q-points" class="qpoints"></div>
     </div>
 
-    <div class="card">
+    <div class="panel">
       <div class="timer-row">
         <div class="timer" id="timer">00:00</div>
         <div id="rec-state"><span class="rec-idle"></span><span class="muted">Mic ready</span></div>
       </div>
       <div class="muted" id="timer-note" style="margin-bottom:10px">Target speaking time</div>
 
-      <div class="transcript" id="transcript"><span class="placeholder">Your words will appear here as you speak…</span></div>
+      <div class="transcript" id="transcript"><span class="placeholder">Your words will appear here as you speak&hellip;</span></div>
 
-      <div id="fallback-box" class="hidden" style="margin-top:10px">
-        <textarea id="fallback-text" rows="5" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit" placeholder="Type what you would say out loud…"></textarea>
+      <div id="fallback-box" class="hidden">
+        <textarea id="fallback-text" rows="5" placeholder="Type what you would say out loud&hellip;"></textarea>
       </div>
 
-      <button id="btn-start-rec" class="btn btn-block">🎤 Start speaking</button>
-      <button id="btn-stop-rec" class="btn btn-danger btn-block hidden">■ Stop</button>
-      <button id="btn-next-q" class="btn btn-ghost btn-block hidden">Next →</button>
+      <button id="btn-start-rec" class="btn btn-block">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg>
+        Start speaking</button>
+      <button id="btn-stop-rec" class="btn btn-danger btn-block hidden">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>
+        Stop</button>
+      <button id="btn-next-q" class="btn btn-ghost btn-block hidden">Next &rarr;</button>
       <button id="btn-quit" class="btn btn-ghost btn-block">Quit practice</button>
     </div>
   </section>
 
   <!-- ============ REPORT ============ -->
   <section id="view-report" class="view hidden">
-    <div class="card">
+    <div class="panel">
       <div class="band-hero">
-        <div class="muted">Your estimated band score</div>
-        <div class="band-big" id="band-overall">– <small>/ 9</small></div>
+        <p class="muted">Your estimated band score</p>
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,253,249,.14)" stroke-width="10"/>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#f9703e" stroke-width="10"
+                    stroke-dasharray="326.7" stroke-dashoffset="98" transform="rotate(-90 60 60)"/>
+          </svg>
+          <div class="band-big" id="band-overall">– <small>/ 9</small></div>
+        </div>
         <p class="muted" id="band-sub"></p>
       </div>
       <div class="demo-note">
         <strong>Demo scoring.</strong> This prototype scores your transcript with on-device heuristics.
         The launch version grades with AI on all four IELTS criteria, including pronunciation from your audio.
       </div>
-      <button id="btn-ai-feedback" class="btn btn-block">🤖 Get AI band feedback <span style="font-weight:400;opacity:.75">(3 free/day)</span></button>
+      <button id="btn-ai-feedback" class="btn btn-block">Get AI band feedback <span style="font-weight:400;opacity:.75">(3 free/day)</span></button>
       <div id="ai-feedback" class="hidden" style="margin-top:12px"></div>
       <div id="criteria"></div>
-      <div class="tip" id="next-tip">💡 <strong>Next step:</strong> do one more round focusing on the lowest criterion above.</div>
+      <div class="tip" id="next-tip"><strong>Next step:</strong> do one more round focusing on the lowest criterion above.</div>
     </div>
 
-    <div class="card">
+    <div class="panel">
       <h3 style="margin-top:0">Session stats</h3>
       <div class="stats" id="stats"></div>
     </div>
 
-    <h3>Your answers</h3>
+    <h3 style="font-size:1.3rem;margin:26px 0 14px">Your answers</h3>
     <div id="answer-list"></div>
 
     <button id="btn-again" class="btn btn-block">Practice again</button>
     <button id="btn-home2" class="btn btn-ghost btn-block">Home</button>
   </section>
 
-  <footer>
-    SpeakBand prototype · <span id="year"></span> · Built for IELTS &amp; PTE learners.<br>
+  <footer class="app">
+    SpeakBand &middot; <span id="year"></span> &middot; Free AI IELTS speaking practice.<br>
     Speech is transcribed by your browser's built-in speech recognition.
   </footer>
 
 </div>
+<script>
+  document.documentElement.classList.remove('no-js');
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 <script src="questions.js"></script>
 <script src="app.js"></script>
 </body>

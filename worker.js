@@ -75,19 +75,24 @@ const STATIC_FILES = {
   "/app.js": "/app.js",
   "/questions.js": "/questions.js",
   "/styles.css": "/styles.css",
+  "/speakband-avatar.png": "/speakband-avatar.png",
 };
 const STATIC_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
+  ".png": "image/png",
 };
 
 async function serveStatic(pathname, env) {
   const file = STATIC_FILES[pathname];
   if (!file) return json({ error: "not found" }, 404);
-  const body = await env.KV.get("site:" + file);
-  if (body == null) return json({ error: "not found" }, 404);
   const ext = file.slice(file.lastIndexOf("."));
+  const binary = ext === ".png";
+  const body = binary
+    ? await env.KV.get("site:" + file, "arrayBuffer")
+    : await env.KV.get("site:" + file);
+  if (body == null) return json({ error: "not found" }, 404);
   return new Response(body, {
     headers: {
       "Content-Type": STATIC_TYPES[ext] || "application/octet-stream",

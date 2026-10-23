@@ -1,121 +1,259 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SpeakBand — free AI IELTS & PTE speaking practice. Speak into your browser, get an instant band score.">
-  <title>SpeakBand — Free AI IELTS Speaking Practice</title>
+  <meta name="description" content="SpeakBand: free AI IELTS speaking practice. Speak into your browser, know your band score before test day.">
+  <title>SpeakBand: Know your IELTS speaking band before test day</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .lp-hero { text-align:center; padding:44px 0 18px; }
-    .lp-hero h1 { font-size:clamp(2rem,7vw,3rem); line-height:1.1; letter-spacing:-0.035em; margin:0 0 14px; }
-    .lp-hero h1 .hl { background:linear-gradient(90deg,var(--brand),var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .lp-hero p.lead { font-size:1.08rem; color:var(--muted); max-width:34rem; margin:0 auto 24px; }
-    .proof { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:18px 0 6px; }
-    .proof span { font-size:0.8rem; font-weight:700; color:var(--muted); background:#eef1f8; border:1px solid var(--line); padding:6px 12px; border-radius:999px; }
-    .band-demo { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:20px 0; }
-    .band-demo .bd { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 6px; text-align:center; }
-    .band-demo .bd .b { font-size:1.5rem; font-weight:800; color:var(--brand); }
-    .band-demo .bd .c { font-size:0.68rem; color:var(--muted); line-height:1.3; }
-    .waitlist-form { display:flex; gap:8px; margin-top:14px; }
-    .waitlist-form input { flex:1; border:2px solid var(--line); border-radius:999px; padding:13px 18px; font:inherit; font-size:16px; min-width:0; } /* 16px stops iOS auto-zoom on focus */
-    .waitlist-form input:focus { outline:none; border-color:var(--brand); }
-    @media (max-width:480px){ .waitlist-form{ flex-direction:column; } .waitlist-form .btn{ width:100%; } .band-demo{ grid-template-columns:repeat(2,1fr); } }
-    .faq details { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:8px 0; }
-    .faq summary { font-weight:700; cursor:pointer; }
-    .faq p { color:var(--muted); font-size:0.92rem; margin:8px 0 0; }
-    .check li { margin-bottom:8px; }
-  </style>
+  <link rel="icon" href="/speakband-avatar.png" type="image/png">
 </head>
 <body>
 <div class="wrap">
 
   <header class="topbar">
-    <div class="logo">Speak<span>Band</span></div>
-    <div class="badge-free">FREE</div>
+    <a class="brand" href="/">
+      <img src="/speakband-avatar.png" alt="SpeakBand logo" width="38" height="38">
+      <span class="wordmark">SpeakBand</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#sample">Sample report</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn" href="practice.html" style="margin-left:8px">Start free mock</a>
   </header>
 
-  <section class="lp-hero">
-    <h1>Know your IELTS speaking band <span class="hl">before</span> test day.</h1>
-    <p class="lead">SpeakBand is a free AI speaking coach: answer real IELTS &amp; PTE-style questions out loud in your browser and get an instant 0–9 band score with tips to improve. No sign-up. No download.</p>
-    <a class="btn" href="practice.html">Try a free mock now</a>
-    <div class="proof">
-      <span>🎤 Browser mic — nothing to install</span>
-      <span>⏱ Real test timings</span>
-      <span>📊 4-criteria band report</span>
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <svg class="hero-arc" viewBox="0 0 400 400" aria-hidden="true">
+      <circle cx="200" cy="200" r="148" fill="none" stroke="#f9703e" stroke-width="52"/>
+      <circle cx="200" cy="200" r="148" fill="none" stroke="#faa45d" stroke-width="52"
+              stroke-dasharray="80 850" transform="rotate(35 200 200)"/>
+    </svg>
+    <div class="hero-text">
+        <h1 class="reveal">Know your band before test day.</h1>
+        <p class="lede reveal" style="--d:.1s">SpeakBand is a free AI speaking coach. Answer real IELTS questions out loud in your browser and get an instant band score. No sign-up, no download.</p>
+        <a class="btn reveal" style="--d:.2s" href="practice.html">Try a free mock</a>
+        <p class="microcopy reveal" style="--d:.3s">No sign-up &middot; 3 free AI gradings a day</p>
+    </div>
+    <div class="stage reveal" style="--d:.25s" data-ui>
+      <p class="fragment-label">Live from the practice room: Part 2 cue card</p>
+      <div class="stage-grid">
+        <div class="test-card">
+          <span class="part-tag">Part 2 · Cue card</span>
+          <p class="question">Describe a person who has influenced you. You have one minute to prepare.</p>
+          <div class="prep-row">
+            <span class="prep-timer" id="prep-timer">01:00</span>
+            <button class="btn btn-ghost" id="prep-start" type="button" style="padding:12px 22px">Start prep</button>
+            <span class="prep-hint">A real 60-second countdown, like the exam.</span>
+          </div>
+        </div>
+        <div class="score-side">
+          <span class="big">7.0</span>
+          <span class="cap">Overall band on this sample answer, graded by SpeakBand&rsquo;s AI.</span>
+          <a class="go" href="#sample" style="margin-top:0">See how it&rsquo;s scored &darr;</a>
+        </div>
+      </div>
+      <a class="go" href="practice.html">Open the real test &rarr;</a>
     </div>
   </section>
 
-  <div class="card">
-    <h3 style="margin-top:0">A sample band report</h3>
-    <div class="band-demo">
-      <div class="bd"><div class="b">6.5</div><div class="c">Fluency &amp; Coherence</div></div>
-      <div class="bd"><div class="b">7.0</div><div class="c">Lexical Resource</div></div>
-      <div class="bd"><div class="b">6.0</div><div class="c">Grammar Range &amp; Accuracy</div></div>
-      <div class="bd"><div class="b">6.5</div><div class="c">Pronunciation</div></div>
+  <!-- ============ PROOF ============ -->
+  <section class="section" id="sample">
+    <h2 class="section-head reveal">This is what an examiner sees.</h2>
+    <p class="section-sub reveal" style="--d:.1s">A real Part 2 answer, graded by SpeakBand&rsquo;s AI. Tap any criterion to read the examiner&rsquo;s note.</p>
+    <div class="proof-grid reveal" style="--d:.2s" data-ui>
+      <button class="proof-tile overall" type="button" aria-expanded="false">
+        <span class="mark">7.0</span>
+        <span class="crit">Overall band</span>
+        <span class="note">The number that decides your result.</span>
+        <span class="examiner-note">A solid Band 7 performance: the speaker handles the long turn with authority and only small slips keep it from Band 8.</span>
+        <span class="tap-hint">Tap for the examiner&rsquo;s note</span>
+      </button>
+      <button class="proof-tile" type="button" aria-expanded="false">
+        <span class="mark"><svg class="ring" viewBox="0 0 120 120" preserveAspectRatio="none" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,253,249,.16)" stroke-width="11"/><circle cx="60" cy="60" r="52" fill="none" stroke="#f9703e" stroke-width="11" stroke-dasharray="326.7" stroke-dashoffset="72.6" transform="rotate(-90 60 60)"/></svg>7.0</span>
+        <span class="crit">Fluency &amp; coherence</span>
+        <span class="examiner-note">Speaks at length with only occasional hesitation; ideas link naturally with &ldquo;however&rdquo;, &ldquo;for example&rdquo;, &ldquo;as a result&rdquo;.</span>
+        <span class="tap-hint">Tap for the examiner&rsquo;s note</span>
+      </button>
+      <button class="proof-tile" type="button" aria-expanded="false">
+        <span class="mark"><svg class="ring" viewBox="0 0 120 120" preserveAspectRatio="none" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,253,249,.16)" stroke-width="11"/><circle cx="60" cy="60" r="52" fill="none" stroke="#f9703e" stroke-width="11" stroke-dasharray="326.7" stroke-dashoffset="90.8" transform="rotate(-90 60 60)"/></svg>6.5</span>
+        <span class="crit">Lexical resource</span>
+        <span class="examiner-note">Good range, but &ldquo;very&rdquo; and &ldquo;good&rdquo; do heavy lifting. One drill: replace five vague adjectives with precise ones.</span>
+        <span class="tap-hint">Tap for the examiner&rsquo;s note</span>
+      </button>
+      <button class="proof-tile" type="button" aria-expanded="false">
+        <span class="mark"><svg class="ring" viewBox="0 0 120 120" preserveAspectRatio="none" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,253,249,.16)" stroke-width="11"/><circle cx="60" cy="60" r="52" fill="none" stroke="#f9703e" stroke-width="11" stroke-dasharray="326.7" stroke-dashoffset="72.6" transform="rotate(-90 60 60)"/></svg>7.0</span>
+        <span class="crit">Grammar</span>
+        <span class="examiner-note">Mixes simple and complex sentences well; errors are slips, not gaps, exactly what Band 7 rewards.</span>
+        <span class="tap-hint">Tap for the examiner&rsquo;s note</span>
+      </button>
+      <button class="proof-tile" type="button" aria-expanded="false">
+        <span class="mark"><svg class="ring" viewBox="0 0 120 120" preserveAspectRatio="none" aria-hidden="true"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,253,249,.16)" stroke-width="11"/><circle cx="60" cy="60" r="52" fill="none" stroke="#f9703e" stroke-width="11" stroke-dasharray="326.7" stroke-dashoffset="90.8" transform="rotate(-90 60 60)"/></svg>6.5</span>
+        <span class="crit">Pronunciation</span>
+        <span class="examiner-note">Clear and easy to follow; word stress wobbles on longer words, the one thing holding back Band 7 here.</span>
+        <span class="tap-hint">Tap for the examiner&rsquo;s note</span>
+      </button>
     </div>
-    <p class="muted" style="margin-bottom:0">Every answer is scored like an examiner scores it — then you get one concrete drill to fix your weakest criterion.</p>
+    <div class="sample-transcript reveal" data-ui>
+      <p class="who">The answer, excerpt</p>
+      &ldquo;The person who influenced me most is my grandfather. He was a teacher for forty years, and he always said that patience is more important than talent. When I failed my first driving test, I wanted to give up, but he told me that &hellip;&rdquo;
+    </div>
+    <p class="honest-note reveal">Sample answer shown with the learner&rsquo;s permission-style demo text. Every practice answer you give is scored the same way: four criteria, one concrete drill for your weakest.</p>
+  </section>
+
+  <!-- ============ MOTIF DIVIDER ============ -->
+  <div class="motif-band" aria-hidden="true">
+    <svg viewBox="0 0 1200 140" preserveAspectRatio="none">
+      <path d="M -40 150 A 640 640 0 0 1 1240 150" fill="none" stroke="#f9703e" stroke-width="44"/>
+      <path d="M -40 150 A 640 640 0 0 1 1240 150" fill="none" stroke="#faa45d" stroke-width="44" stroke-dasharray="120 1180" stroke-dashoffset="-300"/>
+    </svg>
   </div>
 
-  <div class="steps">
-    <div class="step"><div class="n">1</div><h3>Pick a part</h3><p>Part 1 interview, Part 2 cue card, Part 3 discussion — or a full 11-minute mock.</p></div>
-    <div class="step"><div class="n">2</div><h3>Speak naturally</h3><p>Your mic transcribes as you talk. Timers match the real exam, including 1-minute prep.</p></div>
-    <div class="step"><div class="n">3</div><h3>Get your band</h3><p>Instant 0–9 scores, filler-word and vocabulary stats, and targeted tips.</p></div>
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="section" id="how">
+    <h2 class="section-head reveal">Eleven minutes, like the real thing.</h2>
+    <p class="section-sub reveal" style="--d:.1s">The full mock runs the three parts back to back, on real exam timings. Each block below is sized to its real duration.</p>
+    <div class="mockbar reveal" style="--d:.2s" data-ui>
+      <div class="seg seg-1">
+        <span class="dur">4&ndash;5 min</span>
+        <span class="what">First, answer questions about your life, home and work.</span>
+      </div>
+      <div class="seg seg-2">
+        <span class="dur">3&ndash;4 min</span>
+        <span class="what">Then one minute to prepare, up to two to speak on a cue card.</span>
+      </div>
+      <div class="seg seg-3">
+        <span class="dur">4&ndash;5 min</span>
+        <span class="what">Finally, discuss ideas and opinions with the examiner.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section faq" id="faq">
+    <div class="faq-layout">
+      <h2 class="section-head reveal">Fair questions.</h2>
+      <div class="reveal" style="--d:.1s">
+        <details name="sb-faq" open>
+          <summary>Is it really free?<span class="plus" aria-hidden="true"></span></summary>
+          <p class="answer">Yes. Practice questions, timers and demo band reports are free with no account. Three AI gradings a day are free too. A paid tier later adds unlimited AI grading and progress tracking. The free tier stays free.</p>
+        </details>
+        <details name="sb-faq">
+          <summary>How is my speech processed?<span class="plus" aria-hidden="true"></span></summary>
+          <p class="answer">Your browser&rsquo;s built-in speech recognition transcribes your voice. In Chrome and Edge that runs on the browser maker&rsquo;s servers; by default nothing is stored by us. Tapping &ldquo;Get AI band feedback&rdquo; sends only the transcript text to our servers for scoring; transcripts aren&rsquo;t kept, only an anonymous daily-use counter.</p>
+        </details>
+        <details name="sb-faq">
+          <summary>Which tests does it cover?<span class="plus" aria-hidden="true"></span></summary>
+          <p class="answer">IELTS Speaking Parts 1&ndash;3 today. PTE Academic speaking tasks are on the roadmap; join the waitlist below to vote on what comes first.</p>
+        </details>
+        <details name="sb-faq">
+          <summary>Do I need an account?<span class="plus" aria-hidden="true"></span></summary>
+          <p class="answer">No. Open the page, allow the mic, start speaking. Your practice history lives in your browser, not on our servers.</p>
+        </details>
+        <details name="sb-faq">
+          <summary>Will this replace a teacher?<span class="plus" aria-hidden="true"></span></summary>
+          <p class="answer">No. It&rsquo;s a practice multiplier. Ten focused minutes a day with instant feedback beats one weekly class for fluency, but a teacher is still best for personal strategy.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="cta">
+  <h2 class="closing reveal">Your first mock is sixty seconds away.</h2>
+  <div class="cta-grid">
+    <p class="after reveal" style="--d:.1s">Pick a part, allow the mic, answer out loud. Your band score appears the moment you finish.</p>
+    <a class="btn reveal" style="--d:.2s" href="practice.html">Start practicing free</a>
+    <div class="reveal" style="--d:.15s" data-ui>
+      <p class="fragment-label">The first screen is already open</p>
+      <div class="mode-mini">
+        <a href="practice.html"><span class="t">Part 1 &middot; Interview</span><span class="time">~ 3 min</span></a>
+        <a href="practice.html"><span class="t">Part 2 &middot; Cue card</span><span class="time">~ 3 min</span></a>
+        <a href="practice.html"><span class="t">Part 3 &middot; Discussion</span><span class="time">~ 4 min</span></a>
+        <a href="practice.html"><span class="t">Full mock test</span><span class="time">~ 11&ndash;14 min</span></a>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3 style="margin-top:0">Why learners pick SpeakBand</h3>
-    <ul class="check" style="margin:0;padding-left:20px;color:var(--muted)">
-      <li><strong style="color:var(--ink)">Free, no account.</strong> Practice in 60 seconds — most apps paywall you after one test.</li>
-      <li><strong style="color:var(--ink)">IELTS + PTE.</strong> One coach for both tests' speaking sections.</li>
-      <li><strong style="color:var(--ink)">Built for phones.</strong> Practice on the bus, in a queue, between classes.</li>
-      <li><strong style="color:var(--ink)">Honest scoring.</strong> We show you exactly what dragged your band down.</li>
-    </ul>
+    <div class="waitlist-grid">
+    <div class="waitlist reveal" id="waitlist">
+      <h3>PTE mode is coming</h3>
+      <p>We&rsquo;re adding full AI grading with pronunciation from your audio, progress tracking and PTE Academic mode. Join the waitlist. Early members keep a free tier forever.</p>
+      <form class="waitlist-form" action="#" method="POST" onsubmit="return waitlistSubmit(event)">
+        <input type="email" name="email" required placeholder="you@example.com" aria-label="Email address">
+        <button class="btn" type="submit">Notify me</button>
+      </form>
+      <p id="waitlist-msg" role="status"></p>
+    </div>
+    <div class="promise reveal" style="--d:.1s">
+      <p>Early members keep a free tier forever.</p>
+    </div>
+    </div>
+  </section>
+
+</div><!-- /wrap -->
+
+<footer class="site">
+ <div class="wrap">
+  <div class="giant" aria-hidden="true">Speak<span class="band">Band</span></div>
+  <div class="fine">
+    <span>&copy; <span id="year"></span> SpeakBand</span>
+    <span>Free AI IELTS speaking practice</span>
+    <span>Transcripts stay in your browser unless you ask for AI feedback</span>
   </div>
+ </div>
+</footer>
 
-  <div class="card" id="waitlist">
-    <h3 style="margin-top:0">Get early access to AI grading + PTE mode</h3>
-    <p class="muted">We're adding full AI grading (including pronunciation from your audio), progress tracking and PTE Academic mode. Join the waitlist — early members keep a free tier forever.</p>
-    <!-- Waitlist: POSTs to the live /api/waitlist on the Cloudflare Worker
-         (worker.js). If the network is down, signups are kept in this
-         browser's localStorage so no lead is lost, and synced on the next
-         visit by syncQueuedWaitlist. -->
-    <form class="waitlist-form" action="#" method="POST" onsubmit="return waitlistSubmit(event)">
-      <input type="email" name="email" required placeholder="you@example.com" aria-label="Email address">
-      <button class="btn" type="submit">Notify me</button>
-    </form>
-    <p class="muted" id="waitlist-msg" style="margin-bottom:0"></p>
-  </div>
-
-  <div class="faq">
-    <h3>Questions</h3>
-    <details><summary>Is it really free?</summary><p>Yes. Practice questions, timers and demo band reports are free with no account. A paid tier later adds unlimited AI grading and progress tracking — the free tier stays free.</p></details>
-    <details><summary>How is my speech processed?</summary><p>Your browser's built-in speech recognition transcribes your voice — in Chrome and Edge that runs on the browser maker's servers; by default nothing is stored by us. Tapping "Get AI band feedback" sends only the transcript text to our servers for AI scoring; transcripts aren't kept, only an anonymous daily-use counter (3 free AI gradings/day).</p></details>
-    <details><summary>Which tests does it cover?</summary><p>IELTS Speaking Parts 1–3 today. PTE Academic speaking tasks are on the roadmap — join the waitlist to vote on what comes first.</p></details>
-    <details><summary>Will this replace a teacher?</summary><p>No — it's a practice multiplier. Daily 10-minute drills with instant feedback beat one weekly class for fluency, but a teacher is still best for personalised strategy.</p></details>
-  </div>
-
-  <div class="center mt">
-    <a class="btn" href="practice.html">Start practicing free</a>
-    <p class="muted">No sign-up · works on your phone</p>
-  </div>
-
-  <footer>
-    SpeakBand · <span id="year"></span> · Made for IELTS &amp; PTE learners.
-  </footer>
-
-</div>
 <script>
+  document.documentElement.classList.remove('no-js');
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // SpeakBand API (Cloudflare Worker, live since 2026-10-22). Absolute URL
-  // because the worker allows cross-origin POSTs and the site is static.
   const API_BASE = 'https://speakband-api.ayazawan273.workers.dev';
 
-  // Push any leads that were saved on-device (offline submits) to the backend.
+  /* reveal on scroll */
+  (function () {
+    const els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    els.forEach(e => io.observe(e));
+  })();
+
+  /* live 60-second prep timer in the hero fragment */
+  (function () {
+    const disp = document.getElementById('prep-timer');
+    const btn = document.getElementById('prep-start');
+    let left = 60, timer = null;
+    const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    btn.addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = null; left = 60; disp.textContent = fmt(left); btn.textContent = 'Start prep'; return; }
+      btn.textContent = 'Reset';
+      timer = setInterval(() => {
+        left--;
+        disp.textContent = fmt(Math.max(left, 0));
+        if (left <= 0) { clearInterval(timer); timer = null; disp.textContent = '00:00'; btn.textContent = 'Start prep'; left = 60; }
+      }, 1000);
+    });
+  })();
+
+  /* proof tiles: tap a criterion for the examiner's note */
+  document.querySelectorAll('.proof-tile').forEach(t => {
+    t.addEventListener('click', () => {
+      const open = t.classList.toggle('open');
+      t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+
+  /* waitlist: POST to the live worker, honest on-device fallback */
   (async function syncQueuedWaitlist() {
     let q = [];
-    try { q = JSON.parse(localStorage.getItem('speakband_waitlist') || '[]'); } catch {}
+    try { q = JSON.parse(localStorage.getItem('speakband_waitlist') || '[]'); } catch (e) {}
     if (!q.length) return;
     const ok = [];
     for (const email of q) {
@@ -125,11 +263,10 @@
           body: JSON.stringify({ email })
         });
         if (r.ok) ok.push(email);
-      } catch { /* backend still unreachable — keep queued */ }
+      } catch (e) {}
     }
     if (ok.length) {
-      const rest = q.filter((e) => !ok.includes(e));
-      localStorage.setItem('speakband_waitlist', JSON.stringify(rest));
+      try { localStorage.setItem('speakband_waitlist', JSON.stringify(q.filter(e => !ok.includes(e)))); } catch (e) {}
     }
   })();
 
@@ -138,22 +275,20 @@
     const input = e.target.querySelector('input[name=email]');
     const email = input.value.trim();
     const msg = document.getElementById('waitlist-msg');
-    msg.textContent = 'Joining…';
+    msg.textContent = 'Joining\u2026';
     try {
       const r = await fetch(API_BASE + '/api/waitlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
       if (!r.ok) throw new Error('backend not ready');
-      msg.textContent = "You're on the list — we'll email you at launch.";
-    } catch {
-      // Backend unreachable (offline or hiccup): keep the lead on this device
-      // (synced later by syncQueuedWaitlist) and say so honestly.
+      msg.textContent = "You're on the list \u2014 we'll email you at launch.";
+    } catch (err) {
       let q = [];
-      try { q = JSON.parse(localStorage.getItem('speakband_waitlist') || '[]'); } catch {}
+      try { q = JSON.parse(localStorage.getItem('speakband_waitlist') || '[]'); } catch (e) {}
       if (email && !q.includes(email)) q.push(email);
-      try { localStorage.setItem('speakband_waitlist', JSON.stringify(q)); } catch {}
-      msg.textContent = 'Saved on this device — you’re on the early-access list.';
+      try { localStorage.setItem('speakband_waitlist', JSON.stringify(q)); } catch (e) {}
+      msg.textContent = 'Saved on this device \u2014 you\u2019re on the early-access list.';
     }
     e.target.reset();
     return false;
