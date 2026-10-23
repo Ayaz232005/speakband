@@ -27,6 +27,21 @@
     return window.matchMedia('(pointer: fine)').matches;
   }
 
+  /* Atmosphere: inject glow blobs (styled in CSS) so the page has
+     light to move through. Each drifts at its own scroll rate —
+     foreground/mid/background planes. aria-hidden, zero interaction. */
+  function addGlow(parent, cls, top, left) {
+    if (!parent) return null;
+    var g = document.createElement('div');
+    g.className = 'glow-blob ' + cls;
+    g.setAttribute('aria-hidden', 'true');
+    g.style.top = top;
+    g.style.left = left;
+    parent.style.position = parent.style.position || 'relative';
+    parent.insertBefore(g, parent.firstChild);
+    return g;
+  }
+
   function init() {
     if (!eligible()) return;
     try {
@@ -38,15 +53,61 @@
       var heroText = document.querySelector('.hero-text');
       var stage = document.querySelector('.stage');
 
-      /* 1. Arc depth: parallax drift + slow rotation, scrubbed to scroll.
-         Takes over the arc's transform (disables the CSS drift loop). */
+      /* 1. Arc depth: parallax drift + slow rotation + GROWTH, scrubbed.
+         The arc travels toward the viewer as you scroll — a journey,
+         not a wobble. Takes over the arc's transform (disables CSS loop). */
       if (hero && arc) {
         arc.style.animation = 'none';
-        gsap.to(arc, {
-          yPercent: 24,
-          rotation: 30,
+        gsap.timeline({
+          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1.3 }
+        })
+        .to(arc, { yPercent: 24, ease: 'none' }, 0)
+        .to(arc, { rotation: 30, ease: 'none' }, 0)
+        .to(arc, { scale: 1.28, ease: 'none' }, 0);
+      }
+
+      /* 1c. Scroll-as-camera: each section dollies in — a subtle push
+         toward the viewer as it arrives. Buttery scrub. */
+      document.querySelectorAll('.section').forEach(function (sec) {
+        gsap.fromTo(sec, { scale: 0.965, transformOrigin: '50% 18%' }, {
+          scale: 1,
           ease: 'none',
-          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 }
+          scrollTrigger: { trigger: sec, start: 'top bottom', end: 'top 30%', scrub: 1.4 }
+        });
+      });
+
+      /* 1d. Monumental outlined indices (01–04): injected, then drifting
+         slower than the content — deep background plane. */
+      var numerals = { sample: '01', how: '02', faq: '03', pricing: '04' };
+      Object.keys(numerals).forEach(function (id) {
+        var sec = document.getElementById(id);
+        if (!sec) return;
+        var n = document.createElement('div');
+        n.className = 'section-numeral';
+        n.textContent = numerals[id];
+        n.setAttribute('aria-hidden', 'true');
+        sec.insertBefore(n, sec.firstChild);
+        gsap.to(n, {
+          yPercent: 34,
+          ease: 'none',
+          scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 1.5 }
+        });
+      });
+      /* 1b. Atmosphere: coral glow behind the hero text (slow plane),
+         amber glow near the stage (faster plane). They counter-drift —
+         the light itself has depth. */
+      var heroGlow = addGlow(hero, 'glow-coral', '-12vmin', '52%');
+      var stageGlow = addGlow(stage ? stage.parentElement : hero, 'glow-amber', '30%', '8%');
+      if (heroGlow) {
+        gsap.to(heroGlow, {
+          yPercent: 42, ease: 'none',
+          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1.2 }
+        });
+      }
+      if (stageGlow) {
+        gsap.to(stageGlow, {
+          yPercent: -30, ease: 'none',
+          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 0.8 }
         });
       }
 
@@ -57,7 +118,7 @@
         gsap.to(heroText, {
           yPercent: -12,
           ease: 'none',
-          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 }
+          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1.3 }
         });
       }
 
@@ -96,12 +157,15 @@
       }
 
       /* 6. Pointer-driven 3D tilt on the proof tiles — same language,
-         smaller amplitude. Tiles carry no .reveal, so no conflict. */
+         smaller amplitude. Tiles carry no .reveal, so no conflict.
+         Hover also lifts the tile toward the viewer (z) — the card
+         physically rises off the page. */
       var grid = document.querySelector('.proof-grid');
       if (grid && finePointer()) {
         grid.querySelectorAll('.proof-tile').forEach(function (tile) {
           var tX = gsap.quickTo(tile, 'rotationX', { duration: 0.6, ease: 'power3' });
           var tY = gsap.quickTo(tile, 'rotationY', { duration: 0.6, ease: 'power3' });
+          var tZ = gsap.quickTo(tile, 'z', { duration: 0.5, ease: 'power3' });
           tile.addEventListener('pointermove', function (e) {
             var r = tile.getBoundingClientRect();
             var px = (e.clientX - r.left) / r.width - 0.5;
@@ -109,7 +173,8 @@
             tY(px * 7);
             tX(-py * 7);
           });
-          tile.addEventListener('pointerleave', function () { tX(0); tY(0); });
+          tile.addEventListener('pointerenter', function () { tZ(18); });
+          tile.addEventListener('pointerleave', function () { tX(0); tY(0); tZ(0); });
         });
       }
 
@@ -128,13 +193,23 @@
           });
       });
 
-      /* 8. CTA block glides against the scroll — near plane, subtle. */
+      /* 8. CTA block glides against the scroll — near plane, subtle.
+         An amber glow breathes behind it at its own rate. */
       var ctaGrid = document.querySelector('.cta-grid');
+      var cta = document.querySelector('.cta');
+      var ctaGlow = addGlow(cta, 'glow-amber', '10%', '60%');
       if (ctaGrid) {
         gsap.fromTo(ctaGrid, { y: 46 }, {
           y: -30,
           ease: 'none',
           scrollTrigger: { trigger: '.cta', start: 'top bottom', end: 'bottom top', scrub: 1 }
+        });
+      }
+      if (ctaGlow && cta) {
+        gsap.fromTo(ctaGlow, { yPercent: 20 }, {
+          yPercent: -25,
+          ease: 'none',
+          scrollTrigger: { trigger: '.cta', start: 'top bottom', end: 'bottom top', scrub: 1.4 }
         });
       }
 

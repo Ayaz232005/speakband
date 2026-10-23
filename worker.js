@@ -123,6 +123,7 @@ const STATIC_FILES = {
   "/blog/band-6-mistakes.html": "/blog/band-6-mistakes.html",
   "/blog/how-speaking-is-scored.html": "/blog/how-speaking-is-scored.html",
   "/blog/practice-alone.html": "/blog/practice-alone.html",
+  "/refund.html": "/refund.html",
 };
 const STATIC_TYPES = {
   ".html": "text/html; charset=utf-8",

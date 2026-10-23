@@ -154,12 +154,76 @@
     <button id="btn-home2" class="btn btn-ghost btn-block">Home</button>
   </section>
 
-  <footer class="app">
-    SpeakBand &middot; <span id="year"></span> &middot; Free AI IELTS speaking practice.<br>
-    Speech is transcribed by your browser's built-in speech recognition.<br>
-    <a href="privacy.html">Privacy</a> &middot; <a href="terms.html">Terms</a> &middot; <a href="about.html">About</a> &middot; <a href="blog.html">Blog</a> &middot; <a href="contact.html">Contact</a><br>
-    <a href="https://www.instagram.com/tryspeakband/">Instagram</a> &middot; <a href="https://x.com/tryspeakband">X</a> &middot; <a href="https://www.youtube.com/@tryspeakband">YouTube</a>
-  </footer>
+  <footer class="site">
+ <style>
+  .f-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:36px;margin:44px 0 8px}
+  .f-col h4{color:var(--ink);font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px;font-weight:700}
+  .f-col ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  .f-col a{color:var(--ink-dim);text-decoration:none;font-size:var(--step-small)}
+  .f-col a:hover{color:var(--accent)}
+  .f-brand p{color:var(--ink-dim);font-size:var(--step-small);line-height:1.65;margin:14px 0}
+  .f-social{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .f-social a{color:var(--ink-dim);font-size:.78rem;border:1px solid var(--ink-faint);border-radius:999px;padding:7px 14px;text-decoration:none}
+  .f-social a:hover{color:var(--accent);border-color:var(--accent)}
+  .f-pay{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:34px 0 6px;padding-top:26px;border-top:1px solid var(--ink-faint)}
+  .f-pay .badge{border:1px solid var(--ink-faint);border-radius:6px;padding:6px 12px;font-size:.72rem;letter-spacing:.08em;color:var(--ink-dim);font-weight:700}
+  .f-pay .cap{color:var(--ink-faint);font-size:.78rem;margin-left:6px}
+ </style>
+ <div class="wrap">
+  <div class="giant" aria-hidden="true">Speak<span class="band">Band</span></div>
+  <div class="f-grid">
+   <div class="f-col f-brand">
+    <h4>SpeakBand</h4>
+    <img src="/speakband-avatar.png" alt="SpeakBand logo" width="44" height="44" style="border-radius:10px">
+    <p>Free AI IELTS speaking practice. Take realistic mock tests and get examiner-style band scores with AI feedback on every answer. Built by an independent maker, free for learners everywhere.</p>
+    <div class="f-social">
+     <a href="https://www.instagram.com/tryspeakband/">Instagram</a>
+     <a href="https://x.com/tryspeakband">X</a>
+     <a href="https://www.youtube.com/@tryspeakband">YouTube</a>
+    </div>
+   </div>
+   <div class="f-col">
+    <h4>Product</h4>
+    <ul>
+     <li><a href="/practice.html">Practice</a></li>
+     <li><a href="/#pricing">Pricing</a></li>
+     <li><a href="/blog.html">Blog</a></li>
+     <li><a href="/about.html">About</a></li>
+     <li><a href="/account.html">Account</a></li>
+    </ul>
+   </div>
+   <div class="f-col">
+    <h4>Resources</h4>
+    <ul>
+     <li><a href="/#faq">FAQ</a></li>
+     <li><a href="/contact.html">Contact</a></li>
+     <li><a href="/blog/how-speaking-is-scored.html">How speaking is scored</a></li>
+     <li><a href="/blog/band-6-mistakes.html">Band-6 mistakes</a></li>
+    </ul>
+   </div>
+   <div class="f-col">
+    <h4>Legal</h4>
+    <ul>
+     <li><a href="/privacy.html">Privacy Policy</a></li>
+     <li><a href="/terms.html">Terms of Service</a></li>
+     <li><a href="/refund.html">Refund Policy</a></li>
+     <li><a href="/#pricing">Payment Methods</a></li>
+    </ul>
+   </div>
+  </div>
+  <div class="f-pay" aria-label="Accepted payment methods at Pro launch">
+   <span class="badge">VISA</span>
+   <span class="badge">MASTERCARD</span>
+   <span class="badge">PAYPAL</span>
+   <span class="badge">APPLE&nbsp;PAY</span>
+   <span class="cap">Secure checkout via Lemon Squeezy</span>
+  </div>
+  <div class="fine">
+   <span>&copy; <span id="year"></span> SpeakBand</span>
+   <span>Free AI IELTS speaking practice</span>
+  </div>
+ </div>
+</footer>
 
 </div>
 <script>
