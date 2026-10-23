@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your SpeakBand account: plan, usage, and practice history.">
+  <title>Your account — SpeakBand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="/speakband-avatar.png" type="image/png">
+  <style>
+    .acct-wrap { max-width: 720px; margin: 0 auto; padding: 48px 16px 80px; }
+    .acct-head { display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+    .acct-head h1 { font-size: var(--step-head); margin: 0; }
+    .plan-badge { display: inline-block; padding: 8px 18px; border-radius: 999px;
+      background: var(--amber); color: var(--on-accent); font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em; font-size: var(--step-small); }
+    .plan-badge.pro { background: var(--accent); }
+    .acct-card { background: var(--ground-2); border-radius: 20px; padding: clamp(24px, 4vw, 36px);
+      margin-bottom: 24px; box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+    .acct-card h2 { margin: 0 0 16px; font-size: var(--step-lead); }
+    .usage-bar { height: 12px; border-radius: 999px; background: var(--ground-3);
+      overflow: hidden; margin: 12px 0 8px; }
+    .usage-bar > span { display: block; height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--amber)); transition: width .4s ease; }
+    .muted { color: var(--ink-dim); }
+    .hist-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      padding: 14px 0; border-top: 1px solid rgba(255,253,249,.12); }
+    .hist-row:first-of-type { border-top: none; }
+    .hist-score { font-weight: 700; font-size: 1.25rem; color: var(--amber); white-space: nowrap; }
+    .hist-meta { font-size: var(--step-small); color: var(--ink-faint); }
+    .row-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+    .loading { text-align: center; padding: 80px 16px; color: var(--ink-dim); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/speakband-avatar.png" alt="SpeakBand logo" width="38" height="38">
+      <span class="wordmark">SpeakBand</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/">Home</a>
+      <a href="/practice.html">Practice</a>
+      <a href="/about.html">About</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/account.html">Account</a>
+    </nav>
+  </header>
+
+  <main class="acct-wrap">
+    <div class="loading" id="loading">Loading your account…</div>
+
+    <div id="acct" hidden>
+      <div class="acct-head">
+        <h1>Your account</h1>
+        <span class="plan-badge" id="plan-badge">Free</span>
+      </div>
+
+      <section class="acct-card">
+        <h2>Signed in as</h2>
+        <p class="muted" id="acct-email" style="margin:0; font-size:1.15rem;"></p>
+      </section>
+
+      <section class="acct-card">
+        <h2>Today&rsquo;s AI gradings</h2>
+        <div class="usage-bar" aria-hidden="true"><span id="usage-fill" style="width:0%"></span></div>
+        <p class="muted" id="usage-text" style="margin:0;"></p>
+        <div class="row-actions">
+          <a class="btn" href="/practice.html">Practice now</a>
+          <button class="btn btn-ghost" type="button" id="btn-upgrade">Go Pro</button>
+        </div>
+        <p class="muted" id="upgrade-note" style="font-size:var(--step-small); margin:12px 0 0;"></p>
+      </section>
+
+      <section class="acct-card">
+        <h2>Recent gradings</h2>
+        <div id="history"><p class="muted" style="margin:0;">No AI gradings yet — your history appears here after your first graded mock.</p></div>
+      </section>
+
+      <div class="row-actions">
+        <button class="btn btn-ghost" type="button" id="btn-logout">Log out</button>
+      </div>
+    </div>
+  </main>
+
+  <footer style="text-align:center; padding: 32px 16px; color: var(--ink-faint); font-size: var(--step-small);">
+    <a href="/privacy.html" style="color:var(--ink-dim); margin: 0 12px;">Privacy</a>
+    <a href="/terms.html" style="color:var(--ink-dim); margin: 0 12px;">Terms</a>
+    <span style="display:block; margin-top:12px;">&copy; <span id="year"></span> SpeakBand</span>
+  </footer>
+
+</div>
+<script>
+"use strict";
+(function () {
+  document.getElementById("year").textContent = new Date().getFullYear();
+  var LS_CHECKOUT_URL = ""; // wired at Pro launch (see PAYMENTS-SETUP.md)
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  fetch("/api/me", { credentials: "same-origin" }).then(function (r) {
+    if (r.status === 401) { location.replace("/login.html?next=" + encodeURIComponent("/account.html")); return null; }
+    if (!r.ok) throw new Error("Couldn't load your account. Try refreshing.");
+    return r.json();
+  }).then(function (me) {
+    if (!me) return;
+    document.getElementById("loading").hidden = true;
+    document.getElementById("acct").hidden = false;
+
+    document.getElementById("acct-email").textContent = me.email;
+    var badge = document.getElementById("plan-badge");
+    badge.textContent = me.plan;
+    if (me.plan === "Pro") badge.classList.add("pro");
+
+    var pct = Math.min(100, Math.round((me.used_today / me.limit) * 100));
+    document.getElementById("usage-fill").style.width = pct + "%";
+    document.getElementById("usage-text").textContent =
+      me.used_today + " of " + me.limit + " free AI gradings used today." +
+      (me.used_today >= me.limit ? " Come back tomorrow, or go Pro for unlimited." : "");
+
+    document.getElementById("btn-upgrade").addEventListener("click", function () {
+      if (LS_CHECKOUT_URL) { location.href = LS_CHECKOUT_URL; return; }
+      document.getElementById("upgrade-note").textContent =
+        "Pro is coming soon — you're on the list. We'll email you the moment it launches.";
+    });
+
+    var hist = document.getElementById("history");
+    if (me.history && me.history.length) {
+      hist.innerHTML = me.history.map(function (h) {
+        var band = ((Number(h.fluency) + Number(h.lexical) + Number(h.grammar)) / 3);
+        var when = "";
+        try { when = new Date(h.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }); } catch (e) {}
+        return '<div class="hist-row"><div><div class="hist-meta">' + esc(when) +
+          (h.part ? " · Part " + esc(h.part) : "") +
+          (h.provider ? " · " + esc(h.provider) : "") + "</div></div>" +
+          '<span class="hist-score">' + band.toFixed(1) + "</span></div>";
+      }).join("");
+    }
+
+    document.getElementById("btn-logout").addEventListener("click", function () {
+      fetch("/api/logout", { method: "POST", credentials: "same-origin" })
+        .finally(function () { location.replace("/"); });
+    });
+  }).catch(function (e) {
+    document.getElementById("loading").textContent = e.message;
+  });
+})();
+</script>
+</body>
+</html>

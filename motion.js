@@ -1,4 +1,4 @@
-/* SpeakBand motion layer — tasteful scroll-driven 3D (progressive enhancement).
+/* SpeakBand motion layer — scroll-driven 3D (progressive enhancement).
  *
  * Only initializes when ALL of these hold:
  *   - GSAP + ScrollTrigger loaded from CDN
@@ -7,6 +7,11 @@
  * Anything failing -> the site works exactly as before. Motion never
  * blocks content: scripts are deferred and every effect is transform/
  * opacity-only (compositor cost), per the gsap-performance playbook.
+ *
+ * Layering (tasteful, not gimmicky): the hero reads as three depth
+ * planes — arc (far, fast), text (mid), fragment (near, pointer-tilted
+ * with children at different z). Scrubbed parallax keeps everything
+ * glued to scroll position; nothing loops except the rings drawing once.
  */
 (function () {
   'use strict';
@@ -18,6 +23,10 @@
     return true;
   }
 
+  function finePointer() {
+    return window.matchMedia('(pointer: fine)').matches;
+  }
+
   function init() {
     if (!eligible()) return;
     try {
@@ -26,34 +35,53 @@
 
       var hero = document.querySelector('.hero');
       var arc = document.querySelector('.hero-arc');
+      var heroText = document.querySelector('.hero-text');
+      var stage = document.querySelector('.stage');
 
-      /* 1+2. Arc depth: parallax drift + slow rotation, scrubbed to scroll.
+      /* 1. Arc depth: parallax drift + slow rotation, scrubbed to scroll.
          Takes over the arc's transform (disables the CSS drift loop). */
       if (hero && arc) {
         arc.style.animation = 'none';
         gsap.to(arc, {
-          yPercent: 22,
-          rotation: 26,
+          yPercent: 24,
+          rotation: 30,
           ease: 'none',
           scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 }
         });
       }
 
-      /* 3. Motif divider parallax — the band breathes as it crosses. */
+      /* 2. Hero text counter-drifts against the arc — mid plane.
+         Targets the wrapper (no .reveal on it) so the reveal
+         transition on the h1/lede is never fought. */
+      if (hero && heroText) {
+        gsap.to(heroText, {
+          yPercent: -12,
+          ease: 'none',
+          scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: 1 }
+        });
+      }
+
+      /* 3. Fragment inner depth: children float at different z inside
+         the stage's 3D space (preserve-3d comes from CSS .motion-on). */
+      var testCard = document.querySelector('.test-card');
+      var scoreSide = document.querySelector('.score-side');
+      if (stage && testCard) gsap.set(testCard, { z: 34 });
+      if (stage && scoreSide) gsap.set(scoreSide, { z: 68 });
+
+      /* 4. Motif divider parallax + slow rotation — the band breathes. */
       var motif = document.querySelector('.motif-band svg');
       if (motif) {
-        gsap.fromTo(motif, { y: -34 }, {
-          y: 34,
+        gsap.fromTo(motif, { y: -36, rotation: -1.5 }, {
+          y: 36,
+          rotation: 1.5,
           ease: 'none',
           scrollTrigger: { trigger: '.motif-band', start: 'top bottom', end: 'bottom top', scrub: 1 }
         });
       }
 
-      /* 4. Pointer-driven 3D tilt on the hero product fragment.
+      /* 5. Pointer-driven 3D tilt on the hero product fragment.
          quickTo reuses one tween per axis (no per-move allocations). */
-      var stage = document.querySelector('.stage');
-      if (stage && window.matchMedia('(pointer: fine)').matches) {
-        stage.style.transformStyle = 'preserve-3d';
+      if (stage && finePointer()) {
         stage.parentElement.style.perspective = '1400px';
         var rX = gsap.quickTo(stage, 'rotationX', { duration: 0.7, ease: 'power3' });
         var rY = gsap.quickTo(stage, 'rotationY', { duration: 0.7, ease: 'power3' });
@@ -67,7 +95,25 @@
         stage.addEventListener('pointerleave', function () { rX(0); rY(0); });
       }
 
-      /* 5. Score rings draw themselves when scrolled into view. */
+      /* 6. Pointer-driven 3D tilt on the proof tiles — same language,
+         smaller amplitude. Tiles carry no .reveal, so no conflict. */
+      var grid = document.querySelector('.proof-grid');
+      if (grid && finePointer()) {
+        grid.querySelectorAll('.proof-tile').forEach(function (tile) {
+          var tX = gsap.quickTo(tile, 'rotationX', { duration: 0.6, ease: 'power3' });
+          var tY = gsap.quickTo(tile, 'rotationY', { duration: 0.6, ease: 'power3' });
+          tile.addEventListener('pointermove', function (e) {
+            var r = tile.getBoundingClientRect();
+            var px = (e.clientX - r.left) / r.width - 0.5;
+            var py = (e.clientY - r.top) / r.height - 0.5;
+            tY(px * 7);
+            tX(-py * 7);
+          });
+          tile.addEventListener('pointerleave', function () { tX(0); tY(0); });
+        });
+      }
+
+      /* 7. Score rings draw themselves when scrolled into view. */
       document.querySelectorAll('.proof-tile .ring').forEach(function (ring) {
         var fg = ring.querySelectorAll('circle')[1];
         if (!fg) return;
@@ -81,6 +127,26 @@
             scrollTrigger: { trigger: ring, start: 'top 88%', once: true }
           });
       });
+
+      /* 8. CTA block glides against the scroll — near plane, subtle. */
+      var ctaGrid = document.querySelector('.cta-grid');
+      if (ctaGrid) {
+        gsap.fromTo(ctaGrid, { y: 46 }, {
+          y: -30,
+          ease: 'none',
+          scrollTrigger: { trigger: '.cta', start: 'top bottom', end: 'bottom top', scrub: 1 }
+        });
+      }
+
+      /* 9. Footer wordmark drifts sideways — the name exits in motion. */
+      var giant = document.querySelector('footer.site .giant');
+      if (giant) {
+        gsap.fromTo(giant, { xPercent: 2 }, {
+          xPercent: -7,
+          ease: 'none',
+          scrollTrigger: { trigger: 'footer.site', start: 'top bottom', end: 'bottom top', scrub: 1 }
+        });
+      }
 
       /* Refresh after fonts settle so trigger positions are exact. */
       if (document.fonts && document.fonts.ready) {

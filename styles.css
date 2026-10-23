@@ -11,9 +11,12 @@
   --accent: #f9703e;          /* coral — the action, the motif */
   --amber: #faa45d;           /* motif pair (brand-real, from the logo) */
   --on-accent: #241263;
-  --good: #4ade80;
-  --warn: #fbbf24;
-  --bad: #f87171;
+  /* 2-color discipline: every state maps into indigo / coral / amber.
+     Positive -> amber, alerts -> coral. No green, red, or yellow anywhere. */
+  --good: #faa45d;
+  --warn: #f9703e;
+  --bad: #f9703e;
+  --ground-2h: #3a2090;        /* indigo hover lift — same hue family as grounds */
   --font: "Jost", system-ui, -apple-system, "Segoe UI", sans-serif;
   --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
   --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
@@ -43,6 +46,7 @@ h1, h2, h3, h4 {
   letter-spacing: -0.03em;
   line-height: 0.95;
   margin: 0;
+  text-wrap: balance;
 }
 p { margin: 0 0 1em; }
 a { color: inherit; }
@@ -97,9 +101,10 @@ img { display: block; max-width: 100%; }
   border-radius: 0;
   text-decoration: none;
   text-align: center;
-  transition: background 0.15s ease, transform 0.08s ease;
+  box-shadow: 0 16px 34px -16px rgba(10, 4, 34, 0.6);
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
-.btn:hover { background: var(--amber); }
+.btn:hover { background: var(--amber); transform: translateY(-1px); box-shadow: 0 22px 44px -16px rgba(10, 4, 34, 0.65); }
 .btn:active { transform: scale(0.97); }
 .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .btn:disabled { background: var(--ink-faint); color: var(--ground); cursor: not-allowed; }
@@ -112,8 +117,21 @@ img { display: block; max-width: 100%; }
 .btn-ghost:hover { background: transparent; border-color: var(--ink); }
 .btn-block { display: block; width: 100%; margin-top: 12px; }
 .btn-danger { background: var(--bad); color: var(--ground); }
-.btn-danger:hover { background: #fca5a5; }
+.btn-danger:hover { background: var(--amber); }
 .btn svg { width: 1.1em; height: 1.1em; vertical-align: -0.18em; margin-right: 0.45em; }
+
+/* ---------- premium surface language ----------
+   One shadow, one hairline, everywhere. The shadow is indigo-tinted
+   (derived from the ground, not a new hue); the hairline is amber
+   at low opacity. Sharp architectural corners stay — depth comes
+   from light, not rounding. */
+.stage, .test-card, .score-side, .price-card, .proof-tile,
+.panel, .stat, .answer-item, .mode, .mode-mini a, .faq details {
+  box-shadow: 0 30px 70px -38px rgba(10, 4, 34, 0.55);
+}
+.stage, .price-card.pro, .test-card {
+  border: 1px solid rgba(250, 164, 93, 0.16);
+}
 
 /* ---------- hero ---------- */
 .hero { position: relative; padding: clamp(48px, 7vw, 110px) 0 clamp(40px, 5vw, 80px); overflow: clip; }
@@ -257,7 +275,7 @@ img { display: block; max-width: 100%; }
   width: 100%;
   transition: background 0.15s ease;
 }
-.proof-tile:hover { background: #3a2090; }
+.proof-tile:hover { background: var(--ground-2h); }
 .proof-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .proof-tile.overall { background: var(--accent); color: var(--on-accent); grid-column: span 2; }
 .proof-tile.overall:hover { background: var(--amber); }
@@ -383,7 +401,7 @@ img { display: block; max-width: 100%; }
   font-weight: 700;
   transition: background 0.15s ease;
 }
-.mode-mini a:hover { background: #3a2090; }
+.mode-mini a:hover { background: var(--ground-2h); }
 .mode-mini a .t { text-transform: uppercase; letter-spacing: 0.03em; }
 .mode-mini a .time { color: var(--amber); font-variant-numeric: tabular-nums; font-size: var(--step-small); }
 .waitlist-grid {
@@ -469,7 +487,7 @@ footer.site .fine a:hover, footer.app a:hover { color: var(--ink); }
   align-items: center;
   transition: background 0.15s ease;
 }
-.mode:hover { background: #3a2090; }
+.mode:hover { background: var(--ground-2h); }
 .mode:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .mode .mtitle { font-size: var(--step-lead); font-weight: 700; text-transform: uppercase; letter-spacing: 0.01em; }
 .mode .mdesc { color: var(--ink-dim); font-size: var(--step-small); grid-column: 1; }
@@ -558,8 +576,15 @@ footer.app { text-align: center; color: var(--ink-faint); font-size: var(--step-
 
 /* ---------- motion layer ---------- */
 .reveal { opacity: 0; transform: translateY(28px); }
+/* 3D scaffolding, applied only while the GSAP motion layer is active
+   (desktop, no reduced motion). Perspective lives on the grid/stage
+   parents; tiles and fragment children tilt in that space. */
+.motion-on .stage { transform-style: preserve-3d; }
+.motion-on .proof-grid { perspective: 1200px; }
+.motion-on .proof-tile { transform-style: preserve-3d; }
 /* will-change only while the GSAP motion layer is active (desktop, no reduced motion) */
-.motion-on .hero-arc, .motion-on .stage, .motion-on .motif-band svg { will-change: transform; }.reveal.in { opacity: 1; transform: none; transition: opacity 0.7s ease, transform 0.7s ease; transition-delay: var(--d, 0s); }
+.motion-on .hero-arc, .motion-on .stage, .motion-on .motif-band svg,
+.motion-on .proof-tile, .motion-on .hero-text { will-change: transform; }.reveal.in { opacity: 1; transform: none; transition: opacity 0.7s ease, transform 0.7s ease; transition-delay: var(--d, 0s); }
 .no-js .reveal { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {

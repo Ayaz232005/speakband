@@ -461,6 +461,7 @@ async function getAIFeedback() {
       .slice(0, 6000);
     const r = await fetch(API_BASE + "/api/feedback", {
       method: "POST",
+      credentials: "same-origin", // sends sb_session so quota follows the account
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         transcript,
@@ -470,6 +471,14 @@ async function getAIFeedback() {
     });
     let data = {};
     try { data = await r.json(); } catch { /* non-JSON error page */ }
+    if (r.status === 429 && data && data.signup) {
+      // Out of anonymous quota — nudge toward a free account (quota follows it).
+      box.innerHTML =
+        '<div class="demo-note"><strong>Daily free AI-grading limit reached (3/day).</strong> ' +
+        '<a href="/login.html" style="color:inherit;font-weight:700">Sign up free</a> — ' +
+        "your quota and history follow your account.</div>";
+      return;
+    }
     if (!r.ok || !data.scores) throw new Error((data && data.error) || "grading unavailable");
     renderAIFeedback(box, data.scores, data.meta);
   } catch (e) {
@@ -489,13 +498,19 @@ function renderAIFeedback(box, scores, meta) {
     `<span class="score">${Number(scores[k]).toFixed(1)}</span></div>` +
     `<p>${escapeHtml((scores.tips && scores.tips[k]) || "")}</p></div>`
   ).join("");
+  const usage = meta && typeof meta.used === "number"
+    ? `<p class="muted" style="font-size:var(--step-small)">` +
+      (meta.account ? `Signed in — ${meta.used} of ${meta.limit} free gradings used today.`
+                    : `${meta.used} of ${meta.limit} free gradings used today. <a href="/login.html" style="color:inherit">Sign up free</a> to keep your history.`) +
+      `</p>`
+    : "";
   box.innerHTML =
     `<div class="card" style="margin:0"><h3 style="margin-top:0">🤖 AI examiner feedback` +
     (meta && meta.provider ? ` <span class="muted" style="font-weight:400">· via ${escapeHtml(meta.provider)}</span>` : "") +
     `</h3>${rows}` +
     (scores.strength ? `<p><strong>Strength:</strong> ${escapeHtml(scores.strength)}</p>` : "") +
     (scores.fix ? `<p><strong>One fix to focus on:</strong> ${escapeHtml(scores.fix)}</p>` : "") +
-    `</div>`;
+    usage + `</div>`;
 }
 
 function escapeHtml(s) {

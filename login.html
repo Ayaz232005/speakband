@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Log in or create your free SpeakBand account.">
+  <title>Log in — SpeakBand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="/speakband-avatar.png" type="image/png">
+  <style>
+    .auth-wrap { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 48px 16px; }
+    .auth-card { background: var(--ground-2); border-radius: 20px; padding: clamp(28px, 4vw, 48px);
+      width: min(440px, 100%); box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+    .auth-card h1 { font-size: var(--step-head); margin: 0 0 8px; }
+    .auth-card .sub { color: var(--ink-dim); margin: 0 0 24px; }
+    .auth-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .auth-tabs button { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--ink-faint);
+      background: transparent; color: var(--ink-dim); font: inherit; font-weight: 500; cursor: pointer; }
+    .auth-tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent);
+      color: var(--on-accent); font-weight: 700; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: var(--step-small); text-transform: uppercase;
+      letter-spacing: .06em; color: var(--ink-dim); margin-bottom: 8px; }
+    .field input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--ink-faint);
+      background: var(--ground-3); color: var(--ink); font: inherit; }
+    .field input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+    .auth-error { display: none; background: rgba(249,112,62,.14); border: 1px solid var(--warn);
+      color: var(--ink); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: var(--step-small); }
+    .auth-error.show { display: block; }
+    .auth-note { margin-top: 20px; font-size: var(--step-small); color: var(--ink-faint); text-align: center; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/speakband-avatar.png" alt="SpeakBand logo" width="38" height="38">
+      <span class="wordmark">SpeakBand</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="/">Home</a>
+      <a href="/practice.html">Practice</a>
+      <a href="/about.html">About</a>
+      <a href="/blog.html">Blog</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/account.html">Account</a>
+    </nav>
+  </header>
+
+  <main class="auth-wrap">
+    <div class="auth-card">
+      <h1 id="auth-title">Welcome back.</h1>
+      <p class="sub" id="auth-sub">Log in to keep your practice history and quota on your account.</p>
+      <div class="auth-tabs" role="tablist">
+        <button type="button" role="tab" id="tab-login" aria-selected="true">Log in</button>
+        <button type="button" role="tab" id="tab-signup" aria-selected="false">Sign up</button>
+      </div>
+      <div class="auth-error" id="auth-error" role="alert"></div>
+      <form id="auth-form" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="email" required maxlength="120"
+                 placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password"
+                 required minlength="8" maxlength="128" placeholder="8+ characters">
+        </div>
+        <button class="btn btn-block" type="submit" id="auth-submit">Log in</button>
+      </form>
+      <p class="auth-note">Free forever plan &middot; no card required &middot; 3 AI gradings a day</p>
+    </div>
+  </main>
+
+  <footer style="text-align:center; padding: 32px 16px; color: var(--ink-faint); font-size: var(--step-small);">
+    <a href="/privacy.html" style="color:var(--ink-dim); margin: 0 12px;">Privacy</a>
+    <a href="/terms.html" style="color:var(--ink-dim); margin: 0 12px;">Terms</a>
+    <span style="display:block; margin-top:12px;">&copy; <span id="year"></span> SpeakBand</span>
+  </footer>
+
+</div>
+<script>
+"use strict";
+(function () {
+  document.getElementById("year").textContent = new Date().getFullYear();
+  var mode = "login";
+  var params = new URLSearchParams(location.search);
+  var next = params.get("next") || "/account.html";
+  // Only allow relative redirects.
+  if (!next.startsWith("/") || next.startsWith("//")) next = "/account.html";
+
+  var title = document.getElementById("auth-title"),
+      sub = document.getElementById("auth-sub"),
+      submit = document.getElementById("auth-submit"),
+      errBox = document.getElementById("auth-error"),
+      tabLogin = document.getElementById("tab-login"),
+      tabSignup = document.getElementById("tab-signup"),
+      form = document.getElementById("auth-form"),
+      password = document.getElementById("password");
+
+  function setMode(m) {
+    mode = m;
+    var isLogin = m === "login";
+    tabLogin.setAttribute("aria-selected", isLogin);
+    tabSignup.setAttribute("aria-selected", !isLogin);
+    title.textContent = isLogin ? "Welcome back." : "Create your free account.";
+    sub.textContent = isLogin
+      ? "Log in to keep your practice history and quota on your account."
+      : "One account for your history, your quota, and Pro when it launches.";
+    submit.textContent = isLogin ? "Log in" : "Sign up free";
+    password.setAttribute("autocomplete", isLogin ? "current-password" : "new-password");
+    hideError();
+  }
+  function showError(msg) { errBox.textContent = msg; errBox.classList.add("show"); }
+  function hideError() { errBox.classList.remove("show"); }
+
+  tabLogin.addEventListener("click", function () { setMode("login"); });
+  tabSignup.addEventListener("click", function () { setMode("signup"); });
+
+  // Already signed in? Skip the form.
+  fetch("/api/me", { credentials: "same-origin" }).then(function (r) {
+    if (r.ok) location.replace(next);
+  }).catch(function () {});
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    hideError();
+    var email = document.getElementById("email").value.trim();
+    var pw = password.value;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError("Please enter a valid email."); return; }
+    if (pw.length < 8) { showError("Password must be at least 8 characters."); return; }
+    submit.disabled = true;
+    submit.textContent = "One moment…";
+    fetch("/api/" + mode, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, password: pw }),
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      if (!res.ok || !res.d.ok) throw new Error(res.d.error || "Something went wrong. Try again.");
+      location.replace(next);
+    })
+    .catch(function (e) {
+      showError(e.message);
+      submit.disabled = false;
+      setMode(mode); // restore button label
+    });
+  });
+})();
+</script>
+</body>
+</html>
