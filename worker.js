@@ -11,8 +11,12 @@
  *        signature when LEMON_WEBHOOK_SECRET is set, logs, no-ops gracefully)
  *   GET  /, /index.html, /practice.html, /account.html, /login.html, /app.js,
  *        /questions.js, /styles.css, /motion.js, /privacy.html, /terms.html,
- *        /speakband-avatar.png
+ *        /speakband-avatar.png, /about.html, /blog.html, /contact.html,
+ *        /blog/*.html, /refund.html, /pricing.html, /compare.html,
+ *        /cookies.html, /payments.html, /sitemap.html, /404.html,
+ *        /sitemap.xml, /robots.txt
  *        -> serves the static site from KV (keys "site:<path>").
+ *        Unknown non-API paths get the branded /404.html with a 404 status.
  *        The site is hosted HERE (single origin) because the Pages
  *        direct-upload API returned 500s on serve (2026-10-23, root cause TBD).
  *
@@ -137,17 +141,22 @@ const STATIC_FILES = {
   "/cookies.html": "/cookies.html",
   "/payments.html": "/payments.html",
   "/sitemap.html": "/sitemap.html",
+  "/404.html": "/404.html",
+  "/sitemap.xml": "/sitemap.xml",
+  "/robots.txt": "/robots.txt",
 };
 const STATIC_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".png": "image/png",
+  ".xml": "application/xml; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
 };
 
 async function serveStatic(pathname, env) {
   const file = STATIC_FILES[pathname];
-  if (!file) return json({ error: "not found" }, 404);
+  if (!file) return serveNotFound(env);
   const ext = file.slice(file.lastIndexOf("."));
   const binary = ext === ".png";
   const body = binary
@@ -157,6 +166,22 @@ async function serveStatic(pathname, env) {
   return new Response(body, {
     headers: {
       "Content-Type": STATIC_TYPES[ext] || "application/octet-stream",
+      "Cache-Control": "public, max-age=300",
+      ...corsHeaders(),
+    },
+  });
+}
+
+/* Branded 404: unknown non-API paths get the styled page with a real 404 status.
+   API routes are untouched — the fetch() router only calls serveStatic for
+   non-/api GET/HEAD requests. */
+async function serveNotFound(env) {
+  const body = await env.KV.get("site:/404.html");
+  if (body == null) return json({ error: "not found" }, 404);
+  return new Response(body, {
+    status: 404,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "public, max-age=300",
       ...corsHeaders(),
     },

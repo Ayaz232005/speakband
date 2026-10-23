@@ -555,10 +555,37 @@ footer.site .fine a:hover, footer.app a:hover { color: var(--ink); }
 .rec-dot {
   display: inline-block; width: 12px; height: 12px; border-radius: 50%;
   background: var(--bad); margin-right: 8px; vertical-align: baseline;
-  animation: pulse 1.2s infinite;
+  position: relative;
+  animation: rec-core 1.6s ease-in-out infinite;
 }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.rec-dot::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid var(--bad);
+  animation: rec-ring 1.6s ease-out infinite;
+}
+@keyframes rec-core { 0%, 100% { transform: scale(1); } 50% { transform: scale(.82); } }
+@keyframes rec-ring { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
 .rec-idle { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--ink-faint); margin-right: 8px; }
+
+/* friendly mic-denied callout */
+.mic-denied {
+  border: 1px solid var(--accent-soft, rgba(249,112,62,.35));
+  background: rgba(249,112,62,.08);
+  border-radius: var(--r-md, 14px);
+  padding: 14px 16px; margin: 12px 0;
+  font-size: var(--step-small); color: var(--ink); line-height: 1.6;
+}
+.mic-denied strong { display: block; margin-bottom: 4px; }
+
+/* polished report reveal */
+#view-report .band-hero, #view-report .panel, #view-report .criterion, #view-report #answer-list > details {
+  animation: report-in .7s cubic-bezier(.22,.8,.3,1) both;
+}
+#view-report .panel:nth-of-type(2) { animation-delay: .12s; }
+#view-report #answer-list > details:nth-child(2) { animation-delay: .08s; }
+#view-report #answer-list > details:nth-child(3) { animation-delay: .16s; }
+@keyframes report-in { from { opacity: 0; transform: translateY(22px) scale(.985); } to { opacity: 1; transform: none; } }
+.band-big.counting { font-variant-numeric: tabular-nums; }
 .transcript {
   background: var(--ground-3);
   padding: 18px;
@@ -680,6 +707,8 @@ footer.app { text-align: center; color: var(--ink-faint); font-size: var(--step-
   .reveal.in { transition: none; }
   .hero-arc { animation: none; }
   .rec-dot { animation: none; }
+  .rec-dot::after { display: none; }
+  #view-report .band-hero, #view-report .panel, #view-report .criterion, #view-report #answer-list > details { animation: none; }
   .btn { transition: none; }
 }
 

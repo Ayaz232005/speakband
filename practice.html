@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="SpeakBand: free AI IELTS speaking practice with band-score feedback.">
+  <meta property="og:title" content="SpeakBand: Practice room">
+  <meta property="og:description" content="SpeakBand: free AI IELTS speaking practice with band-score feedback.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://speakband-api.ayazawan273.workers.dev/speakband-avatar.png">
+  <meta property="og:url" content="https://speakband-api.ayazawan273.workers.dev/practice.html">
+  <meta name="twitter:card" content="summary">
   <title>SpeakBand: Practice room</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,6 +109,11 @@
       </div>
       <div class="muted" id="timer-note" style="margin-bottom:10px">Target speaking time</div>
 
+      <div id="mic-denied" class="mic-denied hidden">
+        <strong>We can&rsquo;t hear you.</strong>
+        Check the mic permission in your browser&rsquo;s address bar and allow access, then tap &ldquo;Start speaking&rdquo; again. You can also type your answer below.
+      </div>
+
       <div class="transcript" id="transcript"><span class="placeholder">Your words will appear here as you speak&hellip;</span></div>
 
       <div id="fallback-box" class="hidden">
@@ -136,8 +147,9 @@
         <p class="muted" id="band-sub"></p>
       </div>
       <div class="demo-note">
-        <strong>Demo scoring.</strong> This prototype scores your transcript with on-device heuristics.
-        The launch version grades with AI on all four IELTS criteria, including pronunciation from your audio.
+        <strong>Quick score.</strong> The bands above come from on-device checks of your transcript —
+        a fast estimate, not a full examiner grade. For full examiner-style AI grading, use
+        &ldquo;Get AI band feedback&rdquo; above (3 free per day). Audio-based pronunciation scoring is coming soon.
       </div>
       <button id="btn-ai-feedback" class="btn btn-block">Get AI band feedback <span style="font-weight:400;opacity:.75">(3 free/day)</span></button>
       <div id="ai-feedback" class="hidden" style="margin-top:12px"></div>
@@ -189,7 +201,7 @@
     <h4>Product</h4>
     <ul>
      <li><a href="/practice.html">Practice</a></li>
-     <li><a href="/#pricing">Pricing</a></li>
+     <li><a href="/pricing.html">Pricing</a></li>
      <li><a href="/blog.html">Blog</a></li>
      <li><a href="/about.html">About</a></li>
      <li><a href="/account.html">Account</a></li>
@@ -210,7 +222,7 @@
      <li><a href="/privacy.html">Privacy Policy</a></li>
      <li><a href="/terms.html">Terms of Service</a></li>
      <li><a href="/refund.html">Refund Policy</a></li>
-     <li><a href="/#pricing">Payment Methods</a></li>
+     <li><a href="/payments.html">Payment Methods</a></li>
     </ul>
    </div>
   </div>

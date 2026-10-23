@@ -145,6 +145,7 @@ function renderQuestion() {
   }
 
   $("#transcript").innerHTML = '<span class="placeholder">Your words will appear here as you speak…</span>';
+  $("#mic-denied").classList.add("hidden");
   $("#fallback-box").classList.add("hidden");
   $("#fallback-text").value = "";
   $("#btn-start-rec").classList.remove("hidden");
@@ -200,10 +201,16 @@ function beginRecording() {
 
   const ok = startRecognition(onUpdate, onEnd);
   if (!ok) {
-    // Fallback: typed answer (unsupported browser / mic blocked)
+    // Fallback: typed answer. If the browser supports speech recognition but
+    // starting it failed, the mic is almost certainly blocked — say so kindly.
     stopRecognition();
     $("#fallback-box").classList.remove("hidden");
-    $("#rec-state").innerHTML = '<span class="rec-idle"></span><span class="muted">Mic unavailable — type your answer instead</span>';
+    if (srSupported()) {
+      $("#mic-denied").classList.remove("hidden");
+      $("#rec-state").innerHTML = '<span class="rec-idle"></span><span class="muted">Mic blocked — type your answer instead</span>';
+    } else {
+      $("#rec-state").innerHTML = '<span class="rec-idle"></span><span class="muted">This browser can\u2019t do live speech — type your answer instead</span>';
+    }
     $("#btn-start-rec").classList.add("hidden");
     $("#btn-next-q").classList.remove("hidden");
     return;
@@ -235,6 +242,7 @@ function finishRecording(reason) {
   $("#rec-state").innerHTML = '<span class="rec-idle"></span><span class="muted">' + label + "</span>";
   if (reason === "mic-blocked") {
     $("#fallback-box").classList.remove("hidden");
+    $("#mic-denied").classList.remove("hidden");
   }
 }
 
@@ -372,6 +380,23 @@ function criterionName(k) {
            grammar: "Grammatical Range & Accuracy", pronunciation: "Pronunciation (demo)" }[k];
 }
 
+/* Visual only: count the band score up for a premium reveal.
+   The final value is identical to the computed one — no scoring logic. */
+function animateBand(el, target) {
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { el.innerHTML = target.toFixed(1) + " <small>/ 9</small>"; return; }
+  const start = performance.now(), dur = 900;
+  el.classList.add("counting");
+  function frame(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.innerHTML = (target * eased).toFixed(1) + " <small>/ 9</small>";
+    if (p < 1) requestAnimationFrame(frame);
+    else el.classList.remove("counting");
+  }
+  requestAnimationFrame(frame);
+}
+
 function renderReport() {
   // Only scorable answers feed the band computation — unscored ones are still
   // listed below, marked as not scored.
@@ -418,7 +443,7 @@ function renderReport() {
   const scores = scoreCriteria(a, coverage);
   const overall = bandRound((scores.fluency + scores.lexical + scores.grammar + scores.pronunciation) / 4);
 
-  $("#band-overall").innerHTML = overall.toFixed(1) + " <small>/ 9</small>";
+  animateBand($("#band-overall"), overall);
   $("#band-sub").textContent =
     overall >= 7 ? "Strong performance — keep polishing." :
     overall >= 6 ? "Competent — targeted practice will lift you." :
