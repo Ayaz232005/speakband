@@ -11,30 +11,92 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="/speakband-avatar.png" type="image/png">
   <style>
-    .auth-wrap { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 48px 16px; }
-    .auth-card { background: var(--ground-2); border-radius: 20px; padding: clamp(28px, 4vw, 48px);
-      width: min(440px, 100%); box-shadow: 0 24px 80px rgba(0,0,0,.35); }
-    .auth-card h1 { font-size: var(--step-head); margin: 0 0 8px; }
-    .auth-card .sub { color: var(--ink-dim); margin: 0 0 24px; }
-    .auth-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
-    .auth-tabs button { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--ink-faint);
-      background: transparent; color: var(--ink-dim); font: inherit; font-weight: 500; cursor: pointer; }
-    .auth-tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent);
-      color: var(--on-accent); font-weight: 700; }
-    .field { margin-bottom: 16px; }
+    [hidden] { display: none !important; }
+    .auth-scene { position: relative; min-height: 78vh; display: flex; align-items: center;
+      justify-content: center; padding: 56px 16px; overflow: hidden; }
+    .auth-backdrop { position: absolute; inset: 0; pointer-events: none; }
+    .auth-backdrop::before, .auth-backdrop::after { content: ""; position: absolute;
+      border-radius: 50%; filter: blur(90px); opacity: .5; }
+    .auth-backdrop::before { width: 520px; height: 520px; left: -140px; top: -120px;
+      background: radial-gradient(circle, rgba(249,112,62,.55), transparent 65%); }
+    .auth-backdrop::after { width: 620px; height: 620px; right: -180px; bottom: -200px;
+      background: radial-gradient(circle, rgba(250,164,93,.4), transparent 65%); }
+    .auth-card { position: relative; z-index: 1; background: var(--ground-2);
+      border-radius: var(--r-lg); padding: clamp(30px, 4.5vw, 52px);
+      width: min(460px, 100%); box-shadow: var(--shadow-2), var(--edge-light);
+      transform: perspective(1200px); }
+    .auth-kicker { font-size: var(--step-small); letter-spacing: .18em; text-transform: uppercase;
+      color: var(--amber); font-weight: 700; margin: 0 0 10px; }
+    .auth-card h1 { font-size: var(--step-head); margin: 0 0 10px; line-height: 1.02; }
+    .auth-card h1 .hl { color: var(--accent); }
+    .auth-card .sub { color: var(--ink-dim); margin: 0 0 26px; font-size: var(--step-body); }
+    /* segmented tabs */
+    .auth-tabs { position: relative; display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--ground-3); border-radius: var(--r-pill); padding: 6px; margin-bottom: 28px; }
+    .auth-tabs .thumb { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc(50% - 6px);
+      border-radius: var(--r-pill); background: var(--accent);
+      transition: transform .35s cubic-bezier(.4,0,.2,1); }
+    .auth-tabs button { position: relative; z-index: 1; padding: 12px; border: 0; background: transparent;
+      color: var(--ink-dim); font: inherit; font-weight: 500; cursor: pointer; border-radius: var(--r-pill); }
+    .auth-tabs button[aria-selected="true"] { color: var(--on-accent); font-weight: 700; }
+    .auth-tabs[data-mode="signup"] .thumb { transform: translateX(100%); }
+    /* fields */
+    .field { margin-bottom: 18px; }
     .field label { display: block; font-size: var(--step-small); text-transform: uppercase;
-      letter-spacing: .06em; color: var(--ink-dim); margin-bottom: 8px; }
-    .field input { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--ink-faint);
-      background: var(--ground-3); color: var(--ink); font: inherit; }
-    .field input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
-    .auth-error { display: none; background: rgba(249,112,62,.14); border: 1px solid var(--warn);
-      color: var(--ink); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: var(--step-small); }
-    .auth-error.show { display: block; }
-    .auth-note { margin-top: 20px; font-size: var(--step-small); color: var(--ink-faint); text-align: center; }
+      letter-spacing: .08em; color: var(--ink-dim); margin-bottom: 8px; font-weight: 500; }
+    .field input { width: 100%; padding: 15px 18px; border-radius: var(--r-md);
+      border: 1px solid var(--ink-faint); background: var(--ground-3); color: var(--ink);
+      font: inherit; transition: border-color .2s, box-shadow .2s; }
+    .field input::placeholder { color: var(--ink-faint); }
+    .field input:hover { border-color: var(--ink-dim); }
+    .field input:focus { outline: none; border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(250,164,93,.28); }
+    .field input:focus-visible { outline: none; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 52px; }
+    .pw-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      width: 38px; height: 38px; border: 0; background: transparent; border-radius: 50%;
+      color: var(--ink-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pw-eye:hover { color: var(--ink); background: rgba(255,253,249,.08); }
+    .pw-eye:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .pw-eye svg { width: 20px; height: 20px; }
+    .hint { font-size: var(--step-small); color: var(--ink-faint); margin-top: 8px; min-height: 1.4em; }
+    .hint.ok { color: var(--amber); }
+    .hint.bad { color: var(--warn); }
+    /* strength meter */
+    .strength { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+    .strength i { flex: 1; height: 6px; border-radius: 999px; background: rgba(255,253,249,.14);
+      transition: background .25s; }
+    .strength i.on { background: var(--amber); }
+    .strength-label { font-size: var(--step-small); color: var(--ink-dim); margin-top: 6px; min-height: 1.4em; }
+    /* turnstile */
+    .ts-box { margin: 20px 0 4px; display: flex; justify-content: center; }
+    .ts-note { font-size: var(--step-small); color: var(--ink-faint); text-align: center; margin-top: 8px; }
+    /* message boxes */
+    .auth-msg { display: none; border-radius: var(--r-md); padding: 14px 18px; margin-bottom: 18px;
+      font-size: var(--step-small); line-height: 1.5; }
+    .auth-msg.show { display: block; }
+    .auth-msg.error { background: rgba(249,112,62,.13); border: 1px solid var(--warn); color: var(--ink); }
+    .auth-msg.success { background: rgba(250,164,93,.13); border: 1px solid var(--amber); color: var(--ink); }
+    /* submit */
+    #auth-submit { position: relative; font-size: 1.05rem; padding: 16px; }
+    #auth-submit .spin { display: inline-block; width: 1.1em; height: 1.1em; margin-right: .5em;
+      border: 2px solid rgba(36,18,99,.35); border-top-color: var(--on-accent); border-radius: 50%;
+      animation: sb-spin .7s linear infinite; vertical-align: -0.18em; }
+    @keyframes sb-spin { to { transform: rotate(360deg); } }
+    .auth-note { margin-top: 22px; font-size: var(--step-small); color: var(--ink-faint); text-align: center; }
+    .auth-note b { color: var(--ink-dim); font-weight: 500; }
+    .fine-print { margin-top: 14px; font-size: var(--step-small); color: var(--ink-faint); text-align: center; }
+    .fine-print a { color: var(--ink-dim); }
+    @media (max-width: 520px) {
+      .auth-scene { padding: 36px 12px; }
+      .auth-card { padding: 28px 22px; }
+    }
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
   <script defer src="/motion.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=sbTurnstileReady" async defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -54,29 +116,60 @@
     </nav>
   </header>
 
-  <main class="auth-wrap">
-    <div class="auth-card">
-      <h1 id="auth-title">Welcome back.</h1>
+  <main class="auth-scene">
+    <div class="auth-backdrop" aria-hidden="true"></div>
+    <div class="auth-card" id="auth-card">
+      <p class="auth-kicker">Free account</p>
+      <h1 id="auth-title">Welcome <span class="hl">back.</span></h1>
       <p class="sub" id="auth-sub">Log in to keep your practice history and quota on your account.</p>
-      <div class="auth-tabs" role="tablist">
-        <button type="button" role="tab" id="tab-login" aria-selected="true">Log in</button>
-        <button type="button" role="tab" id="tab-signup" aria-selected="false">Sign up</button>
+
+      <div class="auth-tabs" role="tablist" aria-label="Log in or sign up" data-mode="login" id="auth-tabs">
+        <span class="thumb" aria-hidden="true"></span>
+        <button type="button" role="tab" id="tab-login" aria-selected="true" aria-controls="auth-form">Log in</button>
+        <button type="button" role="tab" id="tab-signup" aria-selected="false" aria-controls="auth-form">Sign up</button>
       </div>
-      <div class="auth-error" id="auth-error" role="alert"></div>
+
+      <div class="auth-msg" id="auth-msg" role="alert"></div>
+
       <form id="auth-form" novalidate>
         <div class="field">
           <label for="email">Email</label>
           <input type="email" id="email" name="email" autocomplete="email" required maxlength="120"
-                 placeholder="you@example.com">
+                 placeholder="you@example.com" spellcheck="false">
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" autocomplete="current-password"
-                 required minlength="8" maxlength="128" placeholder="8+ characters">
+          <div class="pw-wrap">
+            <input type="password" id="password" name="password" autocomplete="current-password"
+                   required minlength="8" maxlength="128" placeholder="At least 8 characters">
+            <button type="button" class="pw-eye" data-for="password"
+                    aria-label="Show password" aria-pressed="false"></button>
+          </div>
+          <div class="strength" id="strength" hidden aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+          </div>
+          <div class="strength-label" id="strength-label" hidden></div>
         </div>
+        <div class="field" id="confirm-field" hidden>
+          <label for="confirm">Confirm password</label>
+          <div class="pw-wrap">
+            <input type="password" id="confirm" name="confirm" autocomplete="new-password"
+                   minlength="8" maxlength="128" placeholder="Repeat your password">
+            <button type="button" class="pw-eye" data-for="confirm"
+                    aria-label="Show password" aria-pressed="false"></button>
+          </div>
+          <div class="hint" id="match-hint"></div>
+        </div>
+        <div class="ts-box" id="ts-box">
+          <div id="turnstile-widget"></div>
+        </div>
+        <div class="ts-note" id="ts-note" hidden>Security check couldn't load — you can still continue.</div>
         <button class="btn btn-block" type="submit" id="auth-submit">Log in</button>
       </form>
-      <p class="auth-note">Free forever plan &middot; no card required &middot; 3 AI gradings a day</p>
+
+      <p class="auth-note"><b>Free forever plan</b> &middot; no card required &middot; 3 AI gradings a day</p>
+      <p class="fine-print">Protected by Cloudflare Turnstile. See our
+        <a href="/privacy.html">Privacy Policy</a> and <a href="/terms.html">Terms</a>.</p>
     </div>
   </main>
 
@@ -154,70 +247,187 @@
 </div>
 <script>
 "use strict";
+/* ============================================================
+   TURNSTILE (Cloudflare's free CAPTCHA alternative).
+   The CEO swaps this placeholder for the real site key at deploy
+   time (created free at dash.cloudflare.com → Turnstile).
+   Until then the widget is skipped and the server runs in dev mode
+   (verification skipped while TURNSTILE_SECRET is unset — see worker.js).
+   ============================================================ */
+var TURNSTILE_SITE_KEY = "REPLACE_WITH_REAL_SITE_KEY";
+var TURNSTILE_READY = TURNSTILE_SITE_KEY.indexOf("REPLACE") !== 0;
+
+var turnstileWidgetId = null;
+window.sbTurnstileReady = function () {
+  if (!TURNSTILE_READY || !window.turnstile) return;
+  document.getElementById("ts-box").hidden = false;
+  try {
+    turnstileWidgetId = window.turnstile.render("#turnstile-widget", {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: "dark",
+    });
+  } catch (e) { showTsNote(); }
+};
+function showTsNote() {
+  document.getElementById("ts-note").hidden = false;
+}
+// If the Turnstile script never loads (offline / blocked), don't trap the user.
+setTimeout(function () {
+  if (TURNSTILE_READY && turnstileWidgetId === null) showTsNote();
+}, 9000);
+
 (function () {
   document.getElementById("year").textContent = new Date().getFullYear();
+  // The Turnstile box stays collapsed until a real site key is configured,
+  // so the form has no dead space pre-launch.
+  if (!TURNSTILE_READY) document.getElementById("ts-box").hidden = true;
   var mode = "login";
   var params = new URLSearchParams(location.search);
   var next = params.get("next") || "/account.html";
-  // Only allow relative redirects.
   if (!next.startsWith("/") || next.startsWith("//")) next = "/account.html";
 
-  var title = document.getElementById("auth-title"),
+  var tabs = document.getElementById("auth-tabs"),
+      title = document.getElementById("auth-title"),
       sub = document.getElementById("auth-sub"),
       submit = document.getElementById("auth-submit"),
-      errBox = document.getElementById("auth-error"),
+      msg = document.getElementById("auth-msg"),
       tabLogin = document.getElementById("tab-login"),
       tabSignup = document.getElementById("tab-signup"),
       form = document.getElementById("auth-form"),
-      password = document.getElementById("password");
+      email = document.getElementById("email"),
+      password = document.getElementById("password"),
+      confirmField = document.getElementById("confirm-field"),
+      confirm = document.getElementById("confirm"),
+      strength = document.getElementById("strength"),
+      strengthLabel = document.getElementById("strength-label"),
+      matchHint = document.getElementById("match-hint");
+
+  var EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  // Eye toggles (every .pw-eye in the form).
+  Array.prototype.forEach.call(form.querySelectorAll(".pw-eye"), function (btn) {
+    btn.innerHTML = EYE;
+    btn.addEventListener("click", function () {
+      var input = document.getElementById(btn.getAttribute("data-for"));
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.innerHTML = show ? EYE_OFF : EYE;
+      btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+      input.focus();
+    });
+  });
 
   function setMode(m) {
     mode = m;
     var isLogin = m === "login";
+    tabs.setAttribute("data-mode", m);
     tabLogin.setAttribute("aria-selected", isLogin);
     tabSignup.setAttribute("aria-selected", !isLogin);
-    title.textContent = isLogin ? "Welcome back." : "Create your free account.";
+    title.innerHTML = isLogin ? 'Welcome <span class="hl">back.</span>' : 'Create your <span class="hl">free account.</span>';
     sub.textContent = isLogin
       ? "Log in to keep your practice history and quota on your account."
       : "One account for your history, your quota, and Pro when it launches.";
     submit.textContent = isLogin ? "Log in" : "Sign up free";
     password.setAttribute("autocomplete", isLogin ? "current-password" : "new-password");
-    hideError();
+    confirmField.hidden = isLogin;
+    confirm.required = !isLogin;
+    strength.hidden = isLogin;
+    strength.setAttribute("aria-hidden", isLogin ? "true" : "false");
+    strengthLabel.hidden = isLogin;
+    matchHint.textContent = "";
+    hideMsg();
   }
-  function showError(msg) { errBox.textContent = msg; errBox.classList.add("show"); }
-  function hideError() { errBox.classList.remove("show"); }
+  function showMsg(text, kind) {
+    msg.textContent = text;
+    msg.className = "auth-msg show " + (kind || "error");
+  }
+  function hideMsg() { msg.className = "auth-msg"; }
 
   tabLogin.addEventListener("click", function () { setMode("login"); });
   tabSignup.addEventListener("click", function () { setMode("signup"); });
+
+  // Password strength (signup only), client-side, friendly copy.
+  function scorePassword(pw) {
+    var s = 0;
+    if (pw.length >= 8) s++;
+    if (pw.length >= 12) s++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++;
+    if (/\d/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    return Math.min(4, s);
+  }
+  var STRENGTH_COPY = [
+    "",
+    "Weak — try a longer password.",
+    "Fair — add a number or a capital letter.",
+    "Good — almost there.",
+    "Strong — nice, that's a solid password."
+  ];
+  password.addEventListener("input", function () {
+    if (mode === "login") return;
+    var s = scorePassword(password.value);
+    var bars = strength.querySelectorAll("i");
+    for (var i = 0; i < bars.length; i++) bars[i].classList.toggle("on", i < s);
+    strengthLabel.textContent = password.value ? STRENGTH_COPY[s] : "";
+    checkMatch();
+  });
+  function checkMatch() {
+    if (mode === "login" || !confirm.value) { matchHint.textContent = ""; matchHint.className = "hint"; return; }
+    if (confirm.value === password.value) {
+      matchHint.textContent = "Passwords match.";
+      matchHint.className = "hint ok";
+    } else {
+      matchHint.textContent = "Passwords don't match yet.";
+      matchHint.className = "hint bad";
+    }
+  }
+  confirm.addEventListener("input", checkMatch);
 
   // Already signed in? Skip the form.
   fetch("/api/me", { credentials: "same-origin" }).then(function (r) {
     if (r.ok) location.replace(next);
   }).catch(function () {});
 
+  function setBusy(busy, label) {
+    submit.disabled = busy;
+    submit.innerHTML = busy ? '<span class="spin" aria-hidden="true"></span>' + label : label;
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
-    hideError();
-    var email = document.getElementById("email").value.trim();
+    hideMsg();
+    var em = email.value.trim();
     var pw = password.value;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError("Please enter a valid email."); return; }
-    if (pw.length < 8) { showError("Password must be at least 8 characters."); return; }
-    submit.disabled = true;
-    submit.textContent = "One moment…";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { showMsg("Please enter a valid email."); email.focus(); return; }
+    if (pw.length < 8) { showMsg("Password must be at least 8 characters."); password.focus(); return; }
+    if (mode === "signup" && pw !== confirm.value) { showMsg("Your passwords don't match — check and try again.", "error"); confirm.focus(); return; }
+
+    var tsToken = "";
+    try {
+      if (TURNSTILE_READY && window.turnstile && turnstileWidgetId !== null) {
+        tsToken = window.turnstile.getResponse(turnstileWidgetId) || "";
+      }
+    } catch (err) { /* proceed without a token; server decides */ }
+
+    setBusy(true, mode === "login" ? "Logging you in…" : "Creating your account…");
     fetch("/api/" + mode, {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email, password: pw }),
+      body: JSON.stringify({ email: em, password: pw, "cf-turnstile-response": tsToken }),
     }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
     .then(function (res) {
       if (!res.ok || !res.d.ok) throw new Error(res.d.error || "Something went wrong. Try again.");
+      // Reset the widget so a back-button revisit starts clean.
+      try { if (window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId); } catch (err) {}
       location.replace(next);
     })
-    .catch(function (e) {
-      showError(e.message);
-      submit.disabled = false;
-      setMode(mode); // restore button label
+    .catch(function (err) {
+      showMsg(err.message, "error");
+      try { if (window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId); } catch (e2) {}
+      setBusy(false, mode === "login" ? "Log in" : "Sign up free");
     });
   });
 })();

@@ -3,8 +3,8 @@
  * Endpoints:
  *   POST /api/feedback  { transcript, part, secondsSpoken } -> { scores, tips, stats }
  *   POST /api/waitlist  { email } -> { ok: true }
- *   POST /api/signup    { email, password } -> { ok, email, plan } (sets sb_session cookie)
- *   POST /api/login     { email, password } -> { ok, email, plan } (sets sb_session cookie)
+ *   POST /api/signup    { email, password, cf-turnstile-response? } -> { ok, email, plan } (sets sb_session cookie)
+ *   POST /api/login     { email, password, cf-turnstile-response? } -> { ok, email, plan } (sets sb_session cookie)
  *   POST /api/logout    -> { ok: true } (clears sb_session cookie)
  *   GET  /api/me        -> { email, plan, used_today, limit, history } | 401
  *   POST /api/lemon-webhook -> Lemon Squeezy subscription events (stub: verifies
@@ -22,6 +22,14 @@
  *   GROQ_API_KEY     GroqCloud key (free tier, no card)
  *   LEMON_WEBHOOK_SECRET  Lemon Squeezy webhook signing secret (set when the
  *                         store exists; webhook verifies + logs only until then)
+ *   TURNSTILE_SECRET   Cloudflare Turnstile secret key (free widget at
+ *                         dash.cloudflare.com → Turnstile; set via
+ *                         `wrangler secret put TURNSTILE_SECRET`). While unset,
+ *                         signup/login SKIP bot verification (pre-launch dev
+ *                         mode, documented below) so the flow works before the
+ *                         widget exists. Once set, verification is enforced:
+ *                         requests without a valid Turnstile token are rejected
+ *                         with 403. The secret is never logged.
  *
  * Auth storage (KV fallback — the API token has no D1 scope as of 2026-10-23,
  * so D1 was not created; swap the getUser/putUser/getSession/putSession/
@@ -439,6 +447,32 @@ function validEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/* ---------- Cloudflare Turnstile bot protection ----------
+   Client renders the widget (see login.html); the token arrives in the
+   JSON body as "cf-turnstile-response". Verified here against
+   challenges.cloudflare.com. PRE-LAUNCH DEV MODE: while TURNSTILE_SECRET
+   is unset (no widget created yet), verification is SKIPPED so signup/login
+   keep working — the login page carries a clearly-marked placeholder site
+   key until the CEO swaps the real one in. Once the secret exists, a
+   missing/invalid token is rejected with 403 (fail closed). The secret and
+   the token are never logged. */
+async function verifyTurnstile(token, ip, env) {
+  const secret = env.TURNSTILE_SECRET || "";
+  if (!secret) return { ok: true, skipped: true };
+  if (!token) return { ok: false, reason: "missing-token" };
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response: token, remoteip: ip || "" }),
+    });
+    const data = await r.json().catch(() => ({}));
+    return { ok: data.success === true };
+  } catch {
+    return { ok: false, reason: "verify-error" };
+  }
+}
+
 async function handleSignup(request, env) {
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   if (await authRateLimited(env, ip)) {
@@ -447,6 +481,10 @@ async function handleSignup(request, env) {
   let body;
   try { body = await request.json(); }
   catch { return json({ error: "invalid JSON" }, 400); }
+  const ts = await verifyTurnstile(String(body["cf-turnstile-response"] || ""), ip, env);
+  if (!ts.ok) {
+    return json({ error: "Security check failed. Please reload the page and try again." }, 403);
+  }
   const email = String(body.email || "").trim().toLowerCase().slice(0, 120);
   const password = String(body.password || "");
   if (!validEmail(email)) return json({ error: "Please enter a valid email." }, 422);
@@ -482,6 +520,10 @@ async function handleLogin(request, env) {
   let body;
   try { body = await request.json(); }
   catch { return json({ error: "invalid JSON" }, 400); }
+  const ts = await verifyTurnstile(String(body["cf-turnstile-response"] || ""), ip, env);
+  if (!ts.ok) {
+    return json({ error: "Security check failed. Please reload the page and try again." }, 403);
+  }
   const email = String(body.email || "").trim().toLowerCase().slice(0, 120);
   const password = String(body.password || "");
   if (!validEmail(email) || !password) {
