@@ -7,6 +7,11 @@
    Transcripts stay on-device in this prototype; nothing is uploaded. */
 "use strict";
 
+/* SpeakBand API (Cloudflare Worker, live since 2026-10-22).
+   The frontend is hosted on a different origin (Cloudflare Pages), so all
+   API calls go to this absolute URL. The worker allows cross-origin POSTs. */
+const API_BASE = "https://speakband-api.ayazawan273.workers.dev";
+
 /* ---------- helpers ---------- */
 const $ = (sel) => document.querySelector(sel);
 
@@ -439,9 +444,9 @@ function renderReport() {
 }
 
 /* ---------- production AI feedback (Cloudflare Worker) ----------
-   POSTs the session transcript to /api/feedback (worker.js → Gemini/Groq free
-   tier, 3 gradings/day/visitor). Until the worker is deployed the button shows
-   an honest "not live yet" note — it never fakes a score. */
+   POSTs the session transcript to the live /api/feedback endpoint (worker.js
+   → Gemini/Groq free tier, 3 gradings/day/visitor). Errors (quota reached,
+   network down) are shown honestly — a score is never faked. */
 async function getAIFeedback() {
   const box = $("#ai-feedback");
   const btn = $("#btn-ai-feedback");
@@ -454,7 +459,7 @@ async function getAIFeedback() {
       .map((a) => `Q: ${a.prompt}\nA: ${a.transcript}`)
       .join("\n\n")
       .slice(0, 6000);
-    const r = await fetch("/api/feedback", {
+    const r = await fetch(API_BASE + "/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -469,9 +474,9 @@ async function getAIFeedback() {
     renderAIFeedback(box, data.scores, data.meta);
   } catch (e) {
     box.innerHTML =
-      '<div class="demo-note"><strong>AI grading isn’t live yet.</strong> ' +
-      "The demo scores above are yours to work with — full AI grading " +
-      "(including pronunciation from your audio) launches with the hosted version.</div>";
+      '<div class="demo-note"><strong>AI grading is unavailable right now.</strong> ' +
+      "The demo scores above are yours to work with — please try the AI grading " +
+      "again in a minute (each visitor gets 3 free AI gradings per day).</div>";
   } finally {
     btn.disabled = false;
   }

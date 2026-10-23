@@ -3,6 +3,10 @@
  * Endpoints:
  *   POST /api/feedback  { transcript, part, secondsSpoken } -> { scores, tips, stats }
  *   POST /api/waitlist  { email } -> { ok: true }
+ *   GET  /, /index.html, /practice.html, /app.js, /questions.js, /styles.css
+ *        -> serves the static site from KV (keys "site:<path>").
+ *        The site is hosted HERE (single origin) because the Pages
+ *        direct-upload API returned 500s on serve (2026-10-23, root cause TBD).
  *
  * Env (set via `wrangler secret put`, values come from the user's own free
  * signups — never committed):
@@ -38,6 +42,10 @@ export default {
       return json({ error: "Server storage not configured. Please try again later." }, 500);
     }
     const url = new URL(request.url);
+    // Static site (single origin — no CORS needed, but the API keeps it anyway).
+    if ((request.method === "GET" || request.method === "HEAD") && !url.pathname.startsWith("/api/")) {
+      return serveStatic(url.pathname, env);
+    }
     if (request.method === "POST" && url.pathname === "/api/feedback") {
       return handleFeedback(request, env);
     }
@@ -55,6 +63,38 @@ function corsHeaders() {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
   };
+}
+
+/* ---------- static site (served from KV, keys "site:<path>") ----------
+   Upload with: PUT /accounts/{id}/storage/kv/namespaces/{ns}/values/site:<path>
+   Short cache so redeploys propagate within minutes on the free tier. */
+const STATIC_FILES = {
+  "/": "/index.html",
+  "/index.html": "/index.html",
+  "/practice.html": "/practice.html",
+  "/app.js": "/app.js",
+  "/questions.js": "/questions.js",
+  "/styles.css": "/styles.css",
+};
+const STATIC_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+};
+
+async function serveStatic(pathname, env) {
+  const file = STATIC_FILES[pathname];
+  if (!file) return json({ error: "not found" }, 404);
+  const body = await env.KV.get("site:" + file);
+  if (body == null) return json({ error: "not found" }, 404);
+  const ext = file.slice(file.lastIndexOf("."));
+  return new Response(body, {
+    headers: {
+      "Content-Type": STATIC_TYPES[ext] || "application/octet-stream",
+      "Cache-Control": "public, max-age=300",
+      ...corsHeaders(),
+    },
+  });
 }
 
 async function handleFeedback(request, env) {
