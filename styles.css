@@ -443,6 +443,8 @@ footer.site .giant {
 }
 footer.site .giant .band { color: var(--accent); }
 footer.site .fine { margin-top: 26px; font-size: var(--step-small); color: var(--ink-dim); display: flex; gap: 24px; flex-wrap: wrap; }
+footer.site .fine a, footer.app a { color: var(--ink-dim); }
+footer.site .fine a:hover, footer.app a:hover { color: var(--ink); }
 
 /* ---------- app screens (practice.html) ---------- */
 .view { padding: 34px 0 8px; }
@@ -556,7 +558,8 @@ footer.app { text-align: center; color: var(--ink-faint); font-size: var(--step-
 
 /* ---------- motion layer ---------- */
 .reveal { opacity: 0; transform: translateY(28px); }
-.reveal.in { opacity: 1; transform: none; transition: opacity 0.7s ease, transform 0.7s ease; transition-delay: var(--d, 0s); }
+/* will-change only while the GSAP motion layer is active (desktop, no reduced motion) */
+.motion-on .hero-arc, .motion-on .stage, .motion-on .motif-band svg { will-change: transform; }.reveal.in { opacity: 1; transform: none; transition: opacity 0.7s ease, transform 0.7s ease; transition-delay: var(--d, 0s); }
 .no-js .reveal { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -567,3 +570,28 @@ footer.app { text-align: center; color: var(--ink-faint); font-size: var(--step-
   .rec-dot { animation: none; }
   .btn { transition: none; }
 }
+
+/* ---------- pricing ---------- */
+.price-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; margin-top: 44px; }
+.price-card { background: var(--ground-2); padding: 36px 32px; position: relative; }
+.price-card h3 { margin: 0 0 6px; font-size: var(--step-lead); }
+.price-card .price { margin: 0 0 22px; }
+.price-card .amount { font-size: clamp(2.6rem, 4vw, 3.6rem); font-weight: 700; }
+.price-card .per { color: var(--ink-dim); margin-left: 8px; }
+.price-card ul { margin: 0 0 26px; padding-left: 20px; color: var(--ink-dim); }
+.price-card li { margin-bottom: 10px; }
+.price-card.pro { border: 2px solid var(--accent); background: var(--ground-3); }
+.pro-flag { display: inline-block; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: var(--step-small); text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 14px; margin: 0 0 14px; }
+.pro-note { margin-top: 14px; font-size: var(--step-small); color: var(--ink-dim); }
+@media (max-width: 700px) { .price-grid { grid-template-columns: 1fr; } }
+
+/* ---------- legal pages ---------- */
+.legal { max-width: 72ch; padding: 60px 0 80px; }
+.legal h1 { font-size: var(--step-head); margin: 0 0 8px; }
+.legal .updated { color: var(--ink-dim); font-size: var(--step-small); margin-bottom: 34px; }
+.legal h2 { font-size: var(--step-lead); margin: 40px 0 12px; color: var(--amber); }
+.legal p, .legal li { color: var(--ink-dim); line-height: 1.65; }
+.legal ul { padding-left: 20px; }
+.legal li { margin-bottom: 8px; }
+footer.legal-foot { border-top: 1px solid rgba(255,253,249,.12); margin-top: 60px; padding: 26px 0 40px; color: var(--ink-faint); font-size: var(--step-small); }
+footer.legal-foot a { color: var(--ink-dim); margin-right: 18px; }

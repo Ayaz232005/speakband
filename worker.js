@@ -3,7 +3,10 @@
  * Endpoints:
  *   POST /api/feedback  { transcript, part, secondsSpoken } -> { scores, tips, stats }
  *   POST /api/waitlist  { email } -> { ok: true }
- *   GET  /, /index.html, /practice.html, /app.js, /questions.js, /styles.css
+ *   POST /api/lemon-webhook -> Lemon Squeezy subscription events (stub: verifies
+ *        signature when LEMON_WEBHOOK_SECRET is set, logs, no-ops gracefully)
+ *   GET  /, /index.html, /practice.html, /app.js, /questions.js, /styles.css,
+ *        /motion.js, /privacy.html, /terms.html, /speakband-avatar.png
  *        -> serves the static site from KV (keys "site:<path>").
  *        The site is hosted HERE (single origin) because the Pages
  *        direct-upload API returned 500s on serve (2026-10-23, root cause TBD).
@@ -12,6 +15,8 @@
  * signups — never committed):
  *   GEMINI_API_KEY   Google AI Studio key (free tier, no card)
  *   GROQ_API_KEY     GroqCloud key (free tier, no card)
+ *   LEMON_WEBHOOK_SECRET  Lemon Squeezy webhook signing secret (set when the
+ *                         store exists; webhook verifies + logs only until then)
  *
  * Free-tier router: Gemini Flash-Lite first, Groq gpt-oss-120b on 429/error.
  * Per-IP quota: 3 AI-graded mocks/day (KV, 24h TTL). Hard 429 beyond that —
@@ -52,6 +57,9 @@ export default {
     if (request.method === "POST" && url.pathname === "/api/waitlist") {
       return handleWaitlist(request, env);
     }
+    if (request.method === "POST" && url.pathname === "/api/lemon-webhook") {
+      return handleLemonWebhook(request, env);
+    }
     return json({ error: "not found" }, 404);
   },
 };
@@ -76,6 +84,9 @@ const STATIC_FILES = {
   "/questions.js": "/questions.js",
   "/styles.css": "/styles.css",
   "/speakband-avatar.png": "/speakband-avatar.png",
+  "/motion.js": "/motion.js",
+  "/privacy.html": "/privacy.html",
+  "/terms.html": "/terms.html",
 };
 const STATIC_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -223,6 +234,46 @@ async function handleWaitlist(request, env) {
 
 function dayStamp() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/* ---------- Lemon Squeezy webhook (activation-ready stub) ----------
+   Until the store exists this verifies nothing and changes nothing: it
+   validates the HMAC signature when LEMON_WEBHOOK_SECRET is configured,
+   logs the event type, and returns 200. When Pro launches, extend this to
+   record subscription status in KV (keyed by customer email). */
+async function handleLemonWebhook(request, env) {
+  const raw = await request.text();
+  const secret = env.LEMON_WEBHOOK_SECRET || "";
+  if (secret) {
+    const sig = request.headers.get("x-signature") || "";
+    const ok = await verifyLemonSignature(raw, sig, secret);
+    if (!ok) return json({ error: "bad signature" }, 401);
+  }
+  let event = { meta: {} };
+  try { event = JSON.parse(raw); } catch { /* keep default */ }
+  const type = event?.meta?.event_name || "unknown";
+  // No-op for now: log + acknowledge. Pro entitlements land here at launch.
+  console.log(`[lemon-webhook] ${type}`);
+  return json({ ok: true, received: type });
+}
+
+async function verifyLemonSignature(rawBody, signatureHex, secret) {
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+    const hex = [...new Uint8Array(mac)].map(b => b.toString(16).padStart(2, "0")).join("");
+    return timingSafeEqualHex(hex, signatureHex);
+  } catch { return false; }
+}
+
+function timingSafeEqualHex(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 function json(obj, status = 200) {

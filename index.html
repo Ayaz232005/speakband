@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="/speakband-avatar.png" type="image/png">
+  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script defer src="motion.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -163,6 +166,39 @@
     </div>
   </section>
 
+  <!-- ============ PRICING ============ -->
+  <section class="section" id="pricing">
+    <h2 class="section-head reveal">Free to start. Pro when you&rsquo;re serious.</h2>
+    <p class="section-sub reveal" style="--d:.1s">The free tier stays free forever. Pro is for learners who want unlimited AI grading and deeper examiner reports.</p>
+    <div class="price-grid reveal" style="--d:.2s">
+      <div class="price-card">
+        <h3>Free</h3>
+        <p class="price"><span class="amount">$0</span><span class="per">forever</span></p>
+        <ul>
+          <li>Unlimited practice questions, all 3 parts</li>
+          <li>Real exam timings</li>
+          <li>3 AI band gradings a day</li>
+          <li>No account, no card</li>
+        </ul>
+        <a class="btn btn-ghost" href="practice.html">Start free</a>
+      </div>
+      <div class="price-card pro">
+        <p class="pro-flag">Coming soon</p>
+        <h3>Pro</h3>
+        <p class="price"><span class="amount">$9</span><span class="per">/month</span></p>
+        <ul>
+          <li>Unlimited AI gradings, every day</li>
+          <li>Detailed examiner reports on every answer</li>
+          <li>Pronunciation scoring from your audio</li>
+          <li>Progress tracking across mocks</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <button class="btn" type="button" data-gopro>Go Pro</button>
+        <p class="pro-note">Pro isn&rsquo;t on sale yet &mdash; tap to join the waitlist and get early-bird pricing at launch.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ CTA ============ -->
   <section class="cta">
   <h2 class="closing reveal">Your first mock is sixty seconds away.</h2>
@@ -205,6 +241,7 @@
     <span>&copy; <span id="year"></span> SpeakBand</span>
     <span>Free AI IELTS speaking practice</span>
     <span>Transcripts stay in your browser unless you ask for AI feedback</span>
+    <span class="legal-links"><a href="privacy.html">Privacy</a> &middot; <a href="terms.html">Terms</a> &middot; <a href="https://www.instagram.com/tryspeakband/">Contact</a></span>
   </div>
  </div>
 </footer>
@@ -214,6 +251,20 @@
   document.getElementById('year').textContent = new Date().getFullYear();
 
   const API_BASE = 'https://speakband-api.ayazawan273.workers.dev';
+
+  /* Pro checkout: filled in when the Lemon Squeezy store exists.
+     Empty = Pro not on sale yet; buttons honestly route to the waitlist. */
+  const LS_CHECKOUT_URL = '';
+
+  document.querySelectorAll('[data-gopro]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (LS_CHECKOUT_URL) { window.location.href = LS_CHECKOUT_URL; return; }
+      const wl = document.getElementById('waitlist');
+      if (wl) wl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = wl ? wl.querySelector('input[name=email]') : null;
+      if (input) setTimeout(() => input.focus({ preventScroll: true }), 600);
+    });
+  });
 
   /* reveal on scroll */
   (function () {
