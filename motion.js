@@ -223,6 +223,116 @@
         });
       }
 
+      /* 10. SITE-WIDE layer: every page gets the same craft, tuned for
+         readability. Inner pages have no .hero/.stage, so they get:
+         atmosphere, outlined numerals, depth reveals, and card tilt —
+         all guarded by element presence, all no-ops where irrelevant. */
+      var isInner = !hero;
+
+      /* 10a. Atmosphere on inner pages: coral light behind the first
+         block, amber behind the last — each drifting at its own rate.
+         (Index gets its glows from 1b.) */
+      if (isInner) {
+        var blocks = document.querySelectorAll('main .section, main.legal, .app-hero');
+        if (blocks.length) {
+          var gTop = addGlow(blocks[0], 'glow-coral', '-8vmin', '58%');
+          var gBot = addGlow(blocks[blocks.length - 1], 'glow-amber', '30%', '4%');
+          if (gTop) gsap.to(gTop, {
+            yPercent: 36, ease: 'none',
+            scrollTrigger: { trigger: blocks[0], start: 'top bottom', end: 'bottom top', scrub: 1.2 }
+          });
+          if (gBot) gsap.to(gBot, {
+            yPercent: -28, ease: 'none',
+            scrollTrigger: { trigger: blocks[blocks.length - 1], start: 'top bottom', end: 'bottom top', scrub: 1 }
+          });
+        }
+      }
+
+      /* 10b. Outlined numerals on inner pages: each content section gets
+         its studio number (01, 02…), drifting slower than the content. */
+      if (isInner) {
+        var nIdx = 0;
+        document.querySelectorAll('main .section').forEach(function (sec) {
+          if (!sec.querySelector('.section-head') || sec.querySelector('.section-numeral')) return;
+          nIdx++;
+          var nn = document.createElement('div');
+          nn.className = 'section-numeral';
+          nn.textContent = ('0' + nIdx).slice(-2);
+          nn.setAttribute('aria-hidden', 'true');
+          sec.insertBefore(nn, sec.firstChild);
+          gsap.to(nn, {
+            yPercent: 34, ease: 'none',
+            scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 1.5 }
+          });
+        });
+      }
+
+      /* 10c. Auto-tag depth entrances: section heads, card grids, sitemap
+         groups, footer columns enter through translateZ.
+         Containers (not individual tilt cards) are tagged so the CSS
+         reveal transition never fights GSAP's pointer transforms.
+         Hand-placed .reveal keeps its own timing (existing --d is
+         never overwritten). */
+      var tagged = [];
+      document.querySelectorAll(
+        '.section-head, .section-sub, .price-grid, .mode-grid, .sitemap ul, .sitemap h2, .f-col'
+      ).forEach(function (el) {
+        if (el.classList.contains('reveal')) return;
+        /* never tag elements inside hidden views (practice app views
+           toggle .hidden — a tagged-but-never-revealed element would
+           stay invisible when its view opens). */
+        if (el.closest('.hidden')) return;
+        el.classList.add('reveal');
+        tagged.push(el);
+      });
+      tagged.forEach(function (el, i) {
+        if (!el.style.getPropertyValue('--d')) {
+          el.style.setProperty('--d', (Math.min(i, 8) * 0.06).toFixed(2) + 's');
+        }
+      });
+
+      /* 10d. One reveal observer for the whole site (index had its own;
+         this is idempotent there). */
+      var revealEls = document.querySelectorAll('.reveal:not(.in)');
+      if (revealEls.length && 'IntersectionObserver' in window) {
+        var rio = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) {
+            if (en.isIntersecting) { en.target.classList.add('in'); rio.unobserve(en.target); }
+          });
+        }, { threshold: 0.12 });
+        revealEls.forEach(function (el) { rio.observe(el); });
+      } else {
+        revealEls.forEach(function (el) { el.classList.add('in'); });
+      }
+
+      /* 10e. 3D tilt on price cards + practice mode choosers — the same
+         pointer language as the proof tiles, smaller amplitude.
+         The z-lift on hover is done in JS (it supersedes the CSS
+         :hover lift, which an inline transform would override). */
+      if (finePointer()) {
+        document.querySelectorAll('.price-card, .mode').forEach(function (card) {
+          var cX = gsap.quickTo(card, 'rotationX', { duration: 0.6, ease: 'power3' });
+          var cY = gsap.quickTo(card, 'rotationY', { duration: 0.6, ease: 'power3' });
+          var cZ = gsap.quickTo(card, 'z', { duration: 0.5, ease: 'power3' });
+          card.addEventListener('pointermove', function (e) {
+            var r = card.getBoundingClientRect();
+            var px = (e.clientX - r.left) / r.width - 0.5;
+            var py = (e.clientY - r.top) / r.height - 0.5;
+            cY(px * 6);
+            cX(-py * 6);
+          });
+          card.addEventListener('pointerenter', function () { cZ(14); });
+          card.addEventListener('pointerleave', function () { cX(0); cY(0); cZ(0); });
+        });
+        /* .price-grid and .mode-grid need perspective for the tilt. */
+        document.querySelectorAll('.price-grid, .mode-grid').forEach(function (gr) {
+          gr.style.perspective = '1200px';
+        });
+        document.querySelectorAll('.price-card, .mode').forEach(function (card) {
+          card.style.transformStyle = 'preserve-3d';
+        });
+      }
+
       /* Refresh after fonts settle so trigger positions are exact. */
       if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(function () { ScrollTrigger.refresh(); });

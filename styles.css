@@ -707,3 +707,61 @@ footer.app { text-align: center; color: var(--ink-faint); font-size: var(--step-
 .legal li { margin-bottom: 8px; }
 footer.legal-foot { border-top: 1px solid rgba(255,253,249,.12); margin-top: 60px; padding: 26px 0 40px; color: var(--ink-faint); font-size: var(--step-small); }
 footer.legal-foot a { color: var(--ink-dim); margin-right: 18px; }
+
+/* ---------- round 2: site-wide 3D — inner pages ----------
+   The motion layer now initializes on every page. These rules keep
+   injected atmosphere behind content, give the compare table a
+   dimensional card treatment, and turn the sitemap into a spatial
+   list. Two colors only: indigo grounds, coral/amber accents. */
+
+/* injected glow blobs sit behind content on every page */
+.motion-on .section > :not(.glow-blob):not(.section-numeral),
+.motion-on main.legal > *,
+.motion-on .app-hero > * { position: relative; z-index: 1; }
+
+/* GSAP drives price-card transforms now (pointer tilt) — the CSS
+   hover transform would fight it, so only the shadow transitions. */
+.motion-on .price-card { transition: box-shadow 0.35s ease; }
+
+/* compare table: floats as one dimensional card; the SpeakBand column
+   catches the light; rows lift on hover. Readability untouched. */
+.cmp-scroll {
+  border-radius: var(--r-lg);
+  background: var(--ground-2);
+  box-shadow: var(--edge-light), var(--shadow-1);
+  border: 1px solid rgba(250, 164, 93, 0.16);
+  padding: 8px 14px 12px;
+}
+.cmp-table thead th {
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.78rem;
+}
+.cmp-table th:nth-child(2), .cmp-table td:nth-child(2) { background: rgba(249, 112, 62, 0.07); }
+.cmp-table td, .cmp-table th { border-bottom: 1px solid rgba(255, 253, 249, 0.08); }
+.cmp-table tbody tr { transition: background 0.25s ease; }
+.cmp-table tbody tr:hover { background: rgba(249, 112, 62, 0.05); }
+.cmp-table tbody tr:last-child td { border-bottom: 0; }
+
+/* sitemap: an elegant spatial list */
+.sitemap ul {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.sitemap li {
+  padding: 13px 18px;
+  border-radius: var(--r-md);
+  background: rgba(255, 253, 249, 0.02);
+  border: 1px solid rgba(255, 253, 249, 0.07);
+  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+.sitemap li:hover {
+  transform: translateX(12px);
+  background: rgba(249, 112, 62, 0.08);
+  border-color: rgba(249, 112, 62, 0.28);
+}
+.sitemap li a { font-weight: 500; }
