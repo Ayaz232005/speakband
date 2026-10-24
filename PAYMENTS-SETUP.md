@@ -28,8 +28,13 @@ the two values below exist. Nothing charges anyone before then.
 2. As the worker secret: `LEMON_WEBHOOK_SECRET` (only the key owner can
    paste secrets — the user does this in the Cloudflare dashboard, or via
    the secure flow). The `/api/lemon-webhook` endpoint then verifies
-   signatures and logs subscription events; Pro entitlements (unlimited
-   grading keyed by customer email) get built on top at launch.
+   signatures and records Pro entitlements (already built and tested
+   2026-10-24, 11/11 local harness checks): subscription events set
+   `pro_until` on the matching account, or a pending entitlement applied
+   at signup/login if the buyer has no account yet; cancellation keeps
+   access until period end, expiry clears it. Pro accounts skip the
+   3/day grading quota. What the store still needs from the user: the
+   checkout URL (step 3 above) and the webhook secret — nothing else.
 3. Redeploy the worker, verify a test webhook returns 200, flip the
    "Coming soon" badge copy to live.
 

@@ -199,8 +199,9 @@
 
     var pct = Math.min(100, Math.round((me.used_today / me.limit) * 100));
     document.getElementById("usage-fill").style.width = pct + "%";
-    document.getElementById("usage-text").textContent =
-      me.used_today + " of " + me.limit + " free AI gradings used today." +
+    document.getElementById("usage-text").textContent = me.plan === "Pro"
+      ? "Pro — unlimited AI gradings, every day."
+      : me.used_today + " of " + me.limit + " free AI gradings used today." +
       (me.used_today >= me.limit ? " Come back tomorrow, or go Pro for unlimited." : "");
 
     document.getElementById("btn-upgrade").addEventListener("click", function () {

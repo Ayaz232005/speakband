@@ -7,8 +7,9 @@
  *   POST /api/login     { email, password, cf-turnstile-response? } -> { ok, email, plan } (sets sb_session cookie)
  *   POST /api/logout    -> { ok: true } (clears sb_session cookie)
  *   GET  /api/me        -> { email, plan, used_today, limit, history } | 401
- *   POST /api/lemon-webhook -> Lemon Squeezy subscription events (stub: verifies
- *        signature when LEMON_WEBHOOK_SECRET is set, logs, no-ops gracefully)
+ *   POST /api/lemon-webhook -> Lemon Squeezy subscription events (verifies
+ *        signature when LEMON_WEBHOOK_SECRET is set; records Pro entitlements
+ *        by customer email, or a pending entitlement if no account exists yet)
  *   GET  /, /index.html, /practice.html, /account.html, /login.html, /app.js,
  *        /questions.js, /styles.css, /motion.js, /privacy.html, /terms.html,
  *        /speakband-avatar.png, /about.html, /blog.html, /contact.html,
@@ -200,11 +201,12 @@ async function handleFeedback(request, env) {
 
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   // Logged-in users get their quota tied to the ACCOUNT; anonymous visitors
-  // keep the existing per-IP quota. Same 3/day free limit either way.
+  // keep the existing per-IP quota. Pro accounts skip the quota entirely.
   const sessionUser = await getSessionUser(request, env);
+  const isPro = !!(sessionUser && planOf(sessionUser) === "Pro");
   const key = sessionUser ? `usage:${sessionUser.email}:${dayStamp()}` : `quota:${ip}:${dayStamp()}`;
   const used = parseInt((await env.KV.get(key)) || "0", 10);
-  if (used >= FREE_GRADED_PER_DAY) {
+  if (!isPro && used >= FREE_GRADED_PER_DAY) {
     return json({
       error: sessionUser
         ? "Daily free AI-grading limit reached (3/day). Upgrade to Pro for unlimited grading."
@@ -224,7 +226,8 @@ async function handleFeedback(request, env) {
     return json({ error: "Grading is busy right now. Please try again in a minute." }, 503);
   }
 
-  await env.KV.put(key, String(used + 1), { expirationTtl: 86400 });
+  // Pro: unlimited — no counter increment. Free: count the grading.
+  if (!isPro) await env.KV.put(key, String(used + 1), { expirationTtl: 86400 });
   if (sessionUser) {
     await recordGrading(env, sessionUser.email, {
       date: new Date().toISOString(),
@@ -237,7 +240,8 @@ async function handleFeedback(request, env) {
   }
   return json({
     scores: result.scores,
-    meta: { provider: result.provider, account: !!sessionUser, used: used + 1, limit: FREE_GRADED_PER_DAY },
+    meta: { provider: result.provider, account: !!sessionUser, unlimited: isPro,
+            used: isPro ? used : used + 1, limit: FREE_GRADED_PER_DAY },
   });
 }
 
@@ -332,11 +336,20 @@ function dayStamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/* ---------- Lemon Squeezy webhook (activation-ready stub) ----------
-   Until the store exists this verifies nothing and changes nothing: it
-   validates the HMAC signature when LEMON_WEBHOOK_SECRET is configured,
-   logs the event type, and returns 200. When Pro launches, extend this to
-   record subscription status in KV (keyed by customer email). */
+/* ---------- Lemon Squeezy webhook (Pro entitlements) ----------
+   Verifies the HMAC signature when LEMON_WEBHOOK_SECRET is configured,
+   then records the subscription outcome keyed by customer email:
+   - subscription_created / updated / payment_success / resumed (and
+     order_created for a subscription purchase) -> account (or a pending
+     entitlement if no account exists yet) gets pro_until = renews_at
+     (or ends_at, or now + 31 days when neither is present).
+   - subscription_cancelled -> access kept until ends_at (period end).
+   - subscription_expired -> pro_until cleared (access ends).
+   Events with no identifiable email (e.g. Lemon test pings) are acked
+   as no-ops. A KV failure on an identified customer returns 500 so
+   Lemon Squeezy retries instead of silently losing a paid entitlement.
+   Pending entitlements are applied at signup/login (see
+   applyPendingPro), so buying before creating an account still works. */
 async function handleLemonWebhook(request, env) {
   const raw = await request.text();
   const secret = env.LEMON_WEBHOOK_SECRET || "";
@@ -348,9 +361,74 @@ async function handleLemonWebhook(request, env) {
   let event = { meta: {} };
   try { event = JSON.parse(raw); } catch { /* keep default */ }
   const type = event?.meta?.event_name || "unknown";
-  // No-op for now: log + acknowledge. Pro entitlements land here at launch.
   console.log(`[lemon-webhook] ${type}`);
+  try {
+    await applyLemonEvent(env, event, type);
+  } catch (e) {
+    // Only reachable for identified customers (see applyLemonEvent):
+    // ask Lemon to retry rather than drop a paid entitlement.
+    console.log(`[lemon-webhook] retry: ${type}: ${e && e.message}`);
+    return json({ error: "retry" }, 500);
+  }
   return json({ ok: true, received: type });
+}
+
+function lemonEmail(event) {
+  const a = (event && event.data && event.data.attributes) || {};
+  const cd = (event && event.meta && event.meta.custom_data) || {};
+  const v = cd.email || cd.user_email || a.user_email || a.customer_email || a.email;
+  return typeof v === "string" && validEmail(v.trim().toLowerCase())
+    ? v.trim().toLowerCase() : null;
+}
+function lemonDateMs(s) {
+  const t = s ? Date.parse(s) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
+async function applyLemonEvent(env, event, type) {
+  const email = lemonEmail(event);
+  if (!email) return; // test ping / unidentifiable event: ack, change nothing
+  const a = (event.data && event.data.attributes) || {};
+  const renews = lemonDateMs(a.renews_at);
+  const ends = lemonDateMs(a.ends_at);
+  const now = Date.now();
+  let proUntil = null; // null = leave unchanged
+  if (type === "subscription_expired") proUntil = 0;
+  else if (type === "subscription_cancelled") proUntil = ends && ends > now ? ends : null;
+  else if (type === "subscription_created" || type === "subscription_updated" ||
+           type === "subscription_payment_success" || type === "subscription_resumed" ||
+           type === "order_created") {
+    proUntil = renews || ends || (now + 31 * 86400 * 1000);
+  } else return; // unknown event type for a customer: ack, change nothing
+  if (proUntil === null) return;
+  const user = await getUser(env, email);
+  if (user) {
+    // Never shorten an existing longer entitlement on a stray event.
+    if (proUntil > (user.pro_until || 0) || type === "subscription_expired") {
+      user.pro_until = proUntil;
+      await putUser(env, user);
+    }
+  } else {
+    await env.KV.put("pro_pending:" + email,
+      JSON.stringify({ pro_until: proUntil, event: type, date: new Date().toISOString() }),
+      { expirationTtl: 90 * 86400 });
+  }
+}
+
+/* Apply a pending Pro entitlement (bought before signup) to an account.
+   Called at signup and login; idempotent, never shortens an entitlement. */
+async function applyPendingPro(env, user) {
+  let raw = null;
+  try { raw = await env.KV.get("pro_pending:" + user.email); } catch { return user; }
+  if (!raw) return user;
+  let p = null;
+  try { p = JSON.parse(raw); } catch { /* stale entry, drop it below */ }
+  if (p && typeof p.pro_until === "number" && p.pro_until > (user.pro_until || 0)) {
+    user.pro_until = p.pro_until;
+    await putUser(env, user);
+  }
+  await env.KV.delete("pro_pending:" + user.email).catch(() => {});
+  return user;
 }
 
 async function verifyLemonSignature(rawBody, signatureHex, secret) {
@@ -530,6 +608,7 @@ async function handleSignup(request, env) {
     pro_until: 0,
   };
   await putUser(env, user);
+  await applyPendingPro(env, user);
   const token = randomHex(32);
   await putSession(env, token, email);
   const res = json({ ok: true, ...publicUser(env, user, 0) });
@@ -564,6 +643,7 @@ async function handleLogin(request, env) {
   }
   const hash = await hashPassword(password, b64decode(user.salt));
   if (!bytesEqual(hash, b64decode(user.hash))) return fail();
+  await applyPendingPro(env, user);
   const token = randomHex(32);
   await putSession(env, token, email);
   const used = parseInt((await env.KV.get(`usage:${email}:${dayStamp()}`)) || "0", 10);
