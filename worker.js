@@ -10,6 +10,10 @@
  *   POST /api/lemon-webhook -> Lemon Squeezy subscription events (verifies
  *        signature when LEMON_WEBHOOK_SECRET is set; records Pro entitlements
  *        by customer email, or a pending entitlement if no account exists yet)
+ *   POST /api/creem-webhook -> Creem subscription events (PRIMARY provider;
+ *        verifies the creem-signature header, HMAC-SHA256 of the raw body,
+ *        when CREEM_WEBHOOK_SECRET is set; records Pro entitlements the
+ *        same way, deduplicated by event ID)
  *   GET  /, /index.html, /practice.html, /account.html, /login.html, /app.js,
  *        /questions.js, /styles.css, /motion.js, /privacy.html, /terms.html,
  *        /speakband-avatar.png, /about.html, /blog.html, /contact.html,
@@ -25,8 +29,18 @@
  * signups — never committed):
  *   GEMINI_API_KEY   Google AI Studio key (free tier, no card)
  *   GROQ_API_KEY     GroqCloud key (free tier, no card)
- *   LEMON_WEBHOOK_SECRET  Lemon Squeezy webhook signing secret (set when the
- *                         store exists; webhook verifies + logs only until then)
+ *   LEMON_WEBHOOK_SECRET  Lemon Squeezy webhook signing secret (BACKUP
+ *                         provider; set when the Lemon store exists; webhook
+ *                         verifies + logs only until then)
+ *   CREEM_WEBHOOK_SECRET  Creem webhook secret (PRIMARY provider; Developers
+ *                         -> Webhook in the Creem dashboard; set via
+ *                         `wrangler secret put CREEM_WEBHOOK_SECRET`). While
+ *                         unset, signup/login-style dev mode applies: the
+ *                         webhook SKIPS signature verification so the flow
+ *                         works before the store exists. Once set,
+ *                         verification is enforced: requests without a valid
+ *                         creem-signature are rejected with 401. The secret
+ *                         is never logged.
  *   TURNSTILE_SECRET   Cloudflare Turnstile secret key (free widget at
  *                         dash.cloudflare.com → Turnstile; set via
  *                         `wrangler secret put TURNSTILE_SECRET`). While unset,
@@ -100,6 +114,9 @@ export default {
     }
     if (request.method === "POST" && url.pathname === "/api/lemon-webhook") {
       return handleLemonWebhook(request, env);
+    }
+    if (request.method === "POST" && url.pathname === "/api/creem-webhook") {
+      return handleCreemWebhook(request, env);
     }
     return json({ error: "not found" }, 404);
   },
@@ -448,6 +465,128 @@ function timingSafeEqualHex(a, b) {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+/* ---------- Creem webhook (Pro entitlements) — PRIMARY provider ----------
+   Scheme verified from Creem docs (docs.creem.io, Oct 2026): every webhook
+   carries a `creem-signature` header = hex HMAC-SHA256 of the RAW request
+   body, keyed by the webhook secret (Developers -> Webhook). Payload shape:
+   { id, eventType, object: {...} } with expanded customer/product objects.
+   Mapping (mirrors the Lemon handler's pro_until / pending pattern):
+   - checkout.completed, subscription.active, subscription.paid,
+     subscription.update -> pro_until = period end, else now + 31 days.
+   - subscription.canceled, subscription.scheduled_cancel -> access kept
+     until period end (pro_until = period end if in the future, else
+     unchanged).
+   - subscription.expired, subscription.unpaid -> pro_until cleared (0).
+   - subscription.past_due, trialing, paused, refund.created,
+     dispute.created, unknown -> acked, change nothing.
+   Events with no identifiable email (e.g. test pings) are acked as
+   no-ops. Creem retries non-200 responses (30s, 5min, 30min, 6h — 5
+   attempts, never after 24h), so events are deduplicated by event ID in
+   KV (48h TTL) and a KV failure on an identified customer returns 500
+   so Creem retries instead of silently losing a paid entitlement.
+   Pending entitlements are applied at signup/login (see
+   applyPendingPro), so buying before creating an account still works. */
+async function handleCreemWebhook(request, env) {
+  const raw = await request.text();
+  const secret = env.CREEM_WEBHOOK_SECRET || "";
+  if (secret) {
+    const sig = request.headers.get("creem-signature") || "";
+    const ok = await verifyCreemSignature(raw, sig, secret);
+    if (!ok) return json({ error: "bad signature" }, 401);
+  }
+  let event = {};
+  try { event = JSON.parse(raw); } catch { /* keep default */ }
+  const type = event?.eventType || "unknown";
+  console.log(`[creem-webhook] ${type}`);
+  // Idempotency: skip repeats of an already-processed event ID.
+  const eventId = typeof event?.id === "string" && event.id ? event.id : null;
+  if (eventId) {
+    try {
+      const seen = await env.KV.get("creem_event:" + eventId);
+      if (seen) return json({ ok: true, received: type, duplicate: true });
+    } catch { /* dedup best-effort; continue to apply */ }
+  }
+  try {
+    const applied = await applyCreemEvent(env, event, type);
+    if (eventId && applied) {
+      try {
+        await env.KV.put("creem_event:" + eventId,
+          JSON.stringify({ type, date: new Date().toISOString() }),
+          { expirationTtl: 48 * 3600 });
+      } catch { /* dedup best-effort */ }
+    }
+  } catch (e) {
+    // Only reachable for identified customers (see applyCreemEvent):
+    // ask Creem to retry rather than drop a paid entitlement.
+    console.log(`[creem-webhook] retry: ${type}: ${e && e.message}`);
+    return json({ error: "retry" }, 500);
+  }
+  return json({ ok: true, received: type });
+}
+
+function creemEmail(event) {
+  const o = (event && event.object) || {};
+  const c = (o.customer && typeof o.customer === "object") ? o.customer : {};
+  const m = (o.metadata && typeof o.metadata === "object") ? o.metadata : {};
+  const v = c.email || o.customer_email || o.email || m.email || m.user_email;
+  return typeof v === "string" && validEmail(v.trim().toLowerCase())
+    ? v.trim().toLowerCase() : null;
+}
+function creemDateMs(v) {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    // Epoch seconds (Creem-style) vs milliseconds.
+    return v > 1e12 ? v : v > 1e9 ? v * 1000 : null;
+  }
+  if (typeof v === "string") {
+    const t = Date.parse(v);
+    return Number.isFinite(t) ? t : null;
+  }
+  return null;
+}
+
+async function applyCreemEvent(env, event, type) {
+  const email = creemEmail(event);
+  if (!email) return false; // test ping / unidentifiable event: ack, change nothing
+  const o = (event.object && typeof event.object === "object") ? event.object : {};
+  const periodEnd = creemDateMs(o.current_period_end) ?? creemDateMs(o.current_period_end_date)
+    ?? creemDateMs(o.period_end) ?? creemDateMs(o.ends_at) ?? creemDateMs(o.renews_at);
+  const now = Date.now();
+  let proUntil = null; // null = leave unchanged
+  if (type === "subscription.expired" || type === "subscription.unpaid") proUntil = 0;
+  else if (type === "subscription.canceled" || type === "subscription.scheduled_cancel") {
+    proUntil = periodEnd && periodEnd > now ? periodEnd : null;
+  } else if (type === "checkout.completed" || type === "subscription.active" ||
+             type === "subscription.paid" || type === "subscription.update") {
+    proUntil = periodEnd || (now + 31 * 86400 * 1000);
+  } else return false; // past_due, trialing, paused, refund, dispute, unknown: ack, change nothing
+  if (proUntil === null) return false;
+  const user = await getUser(env, email);
+  if (user) {
+    // Never shorten an existing longer entitlement on a stray event.
+    if (proUntil > (user.pro_until || 0) || proUntil === 0) {
+      user.pro_until = proUntil;
+      await putUser(env, user);
+    }
+  } else {
+    await env.KV.put("pro_pending:" + email,
+      JSON.stringify({ pro_until: proUntil, event: type, date: new Date().toISOString() }),
+      { expirationTtl: 90 * 86400 });
+  }
+  return true;
+}
+
+async function verifyCreemSignature(rawBody, signatureHex, secret) {
+  try {
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+    const hex = [...new Uint8Array(mac)].map(b => b.toString(16).padStart(2, "0")).join("");
+    return timingSafeEqualHex(hex, signatureHex);
+  } catch { return false; }
 }
 
 /* ---------- accounts: signup / login / logout / me ----------

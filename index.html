@@ -303,9 +303,9 @@
   <div class="f-pay" aria-label="Accepted payment methods at Pro launch">
    <span class="badge">VISA</span>
    <span class="badge">MASTERCARD</span>
-   <span class="badge">PAYPAL</span>
+   <span class="badge">GOOGLE&nbsp;PAY</span>
    <span class="badge">APPLE&nbsp;PAY</span>
-   <span class="cap">Secure checkout via Lemon Squeezy</span>
+   <span class="cap">Secure checkout via Creem</span>
   </div>
   <div class="fine">
    <span>&copy; <span id="year"></span> SpeakBand</span>
@@ -320,13 +320,13 @@
 
   const API_BASE = 'https://speakband-api.ayazawan273.workers.dev';
 
-  /* Pro checkout: filled in when the Lemon Squeezy store exists.
+  /* Pro checkout: filled in when the Creem store exists.
      Empty = Pro not on sale yet; buttons honestly route to the waitlist. */
-  const LS_CHECKOUT_URL = '';
+  const CREEM_CHECKOUT_URL = '';
 
   document.querySelectorAll('[data-gopro]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (LS_CHECKOUT_URL) { window.location.href = LS_CHECKOUT_URL; return; }
+      if (CREEM_CHECKOUT_URL) { window.location.href = CREEM_CHECKOUT_URL; return; }
       const wl = document.getElementById('waitlist');
       if (wl) wl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       const input = wl ? wl.querySelector('input[name=email]') : null;

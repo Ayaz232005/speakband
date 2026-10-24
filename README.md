@@ -46,5 +46,5 @@ site (from KV, keys `site:<path>`) and the API on a single origin. $0 spent.
 1. Drive traffic: first content batch (news-roundup IELTS Shorts/TikTok/IG) —
    drafts need the user's per-post approval before anything goes public.
 2. Supabase auth + progress tracking (later, when retention matters).
-3. Freemium paywall ($8–10/mo) once free usage proves demand — via Lemon Squeezy
+3. Freemium paywall ($8–10/mo) once free usage proves demand — via Creem
    or Paddle (both pay out to Pakistan; Stripe unavailable in PK).
